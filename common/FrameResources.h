@@ -56,7 +56,11 @@ struct MaterialConstants
 struct InstanceInfo
 {
     DirectX::XMMATRIX WorldMatrix;
-    DirectX::XMMATRIX TexWorld;
+    DirectX::XMFLOAT4 Color;
+    InstanceInfo() {
+        WorldMatrix = DirectX::XMMatrixIdentity();
+        Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    }
 };
 
 struct FrameResources

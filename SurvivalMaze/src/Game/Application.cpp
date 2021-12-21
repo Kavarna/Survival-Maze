@@ -116,11 +116,22 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     mModels.emplace_back(Direct3D::kBufferCount, 0);
     CHECK(mModels.back().Create("Resources\\Cube.obj"), false, "Unable to load Suzanne");
     mModels.back().Translate(0.0f, 0.0f, 0.0f);
+    mCubeModel = &mModels.back();
 
     ComPtr<ID3D12Resource> intermediaryResources[2];
     CHECK(Model::InitBuffers(initializationCmdList, intermediaryResources), false, "Unable to initialize buffers for models");
 
     mCamera.Create({ 0.0f, 0.0f, -3.0f }, (float)mClientWidth / mClientHeight);
+
+    Maze::MazeInitializationInfo mazeInfo = {};
+    mazeInfo.rows = Random::get(5, 20);
+    mazeInfo.cols = Random::get(5, 20);
+    mazeInfo.tileWidth = 20.0f;
+    mazeInfo.tileDepth = 20.0f;
+    mazeInfo.cubeModel = mCubeModel;
+    auto startPositionResult = mMaze.Create(mazeInfo);
+    CHECK(startPositionResult.Valid(), false, "Unable to create maze");
+
 
     CHECK_HR(initializationCmdList->Close(), false);
     d3d->Flush(initializationCmdList, mFence.Get(), ++mCurrentFrame);
@@ -207,8 +218,9 @@ void Application::UpdateModels(FrameResources* frameResources)
         if (model.DirtyFrames > 0)
         {
             auto mappedMemory = frameResources->PerObjectBuffers.GetMappedMemory(model.ConstantBufferIndex);
-            mappedMemory->World = DirectX::XMMatrixTranspose(model.GetWorld());
-            mappedMemory->TexWorld = DirectX::XMMatrixTranspose(model.GetTexWorld());
+            auto &instanceInfo = model.GetInstanceInfo();
+            mappedMemory->World = DirectX::XMMatrixTranspose(instanceInfo.WorldMatrix);
+            mappedMemory->TexWorld = DirectX::XMMatrixIdentity();
             model.DirtyFrames--;
         }
     }

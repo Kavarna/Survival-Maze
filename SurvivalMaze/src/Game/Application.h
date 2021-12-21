@@ -2,6 +2,7 @@
 
 
 #include "Engine.h"
+#include "Maze.h"
 
 
 
@@ -35,8 +36,11 @@ private:
 
 private:
     std::vector<Model> mModels;
+    Model* mCubeModel;
 
     SceneLight mSceneLight;
+
+    Maze mMaze;
 
     D3D12_VIEWPORT mViewport;
     D3D12_RECT mScissors;
