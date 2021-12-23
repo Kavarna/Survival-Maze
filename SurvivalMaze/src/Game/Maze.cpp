@@ -17,16 +17,24 @@ Result<DirectX::XMINT2> Maze::Create(const MazeInitializationInfo& info)
 #endif
 
     mCubeModel = info.cubeModel;
-    AddModelInstances(info.tileWidth, info.tileDepth);
+    AddModelInstances((uint32_t)info.tileWidth, (uint32_t)info.tileDepth);
 
     return result;
+}
+
+void Maze::Render()
+{
+    for (const auto instance : mTileInstances)
+    {
+        mCubeModel->AddCurrentInstance(instance);
+    }
 }
 
 Result<DirectX::XMINT2> Maze::Lee()
 {
     DirectX::XMINT2 startPosition = {
+        (int32_t)mTiles[0].size() / 2,
         (int32_t)mTiles.size() / 2,
-        (int32_t)mTiles[0].size() / 2
     };
     std::vector<decltype(startPosition)> st;
     st.push_back(startPosition);
@@ -83,21 +91,25 @@ Result<DirectX::XMINT2> Maze::Lee()
 
 void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
 {
+    mTileInstances.reserve(mTiles.size() * mTiles[0].size());
     for (std::size_t i = 0; i < mTiles.size(); ++i) {
         for (std::size_t j = 0; j < mTiles[0].size(); ++j) {
-            DirectX::XMFLOAT3 position, scale = { 2.0f, 2.0f, 2.0f };
+            DirectX::XMFLOAT3 position;
+            DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+            // DirectX::XMFLOAT3 scale = { 2.0f * tileWidth, 2.0f, 2.0f * tileDepth };
             DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-            position.x = (j - mTiles[0].size()) * tileWidth;
-            position.z = (i - mTiles.size()) * tileDepth;
+            position.x = ((float)j - (float)mTiles[0].size()) * tileWidth;
+            position.z = ((float)i - (float)mTiles.size()) * tileDepth;
             
             switch (mTiles[i][j]) {
-            case TileType::Free:
             case TileType::Enemy:
+                color.z = 1.0f;
+            case TileType::Free:
                 position.y = -1.0f;
                 break;
             case TileType::Wall:
-                position.y = 5.0f;
-                scale.y = 20.f;
+                position.y = 0.0f;
+                scale.y = 3.0f;
                 color.x = 1.0f;
                 color.y = 0.0f;
                 color.z = 0.0f;
@@ -107,9 +119,12 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
             }
 
             InstanceInfo instanceInfo;
-            instanceInfo.WorldMatrix = DirectX::XMMatrixTranslation(position.x, position.y, position.z) * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
+            instanceInfo.WorldMatrix = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
             instanceInfo.Color = color;
-            mCubeModel->AddInstance(instanceInfo);
+            auto instanceResult = mCubeModel->AddInstance(instanceInfo);
+            CHECKCONT(instanceResult.Valid(), "Cannot add tile instance");
+            mTileInstances.push_back(instanceResult.Get());
+
         }
     }
 }

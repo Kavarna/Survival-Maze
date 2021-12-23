@@ -12,8 +12,9 @@ Application::Application() :
 
 bool Application::OnInit(ID3D12GraphicsCommandList* initializationCmdList, ID3D12CommandAllocator* cmdAllocator)
 {
-    // mSceneLight.SetAmbientColor(0.02f, 0.02f, 0.02f, 1.0f);
-    mSceneLight.SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
+    mSceneLight.SetAmbientColor(0.02f, 0.02f, 0.02f, 1.0f);
+    // mSceneLight.SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
+    mSceneLight.AddDirectionalLight("Sun", DirectX::XMFLOAT3(-0.5f, -1.0f, 0.0f), DirectX::XMFLOAT3(0.5f, 0.5f, 0.5f));
 
     CHECK(InitModels(initializationCmdList, cmdAllocator), false, "Unable to initialize all models");
 
@@ -35,14 +36,13 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     auto pipelineManager = PipelineManager::Get();
     FLOAT backgroundColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    auto pipelineSignatureResult = pipelineManager->GetPipelineAndRootSignature(PipelineType::MaterialLight);
-    CHECK(pipelineSignatureResult.Valid(), false, "Unable to retrieve pipeline and root signature");
-    auto [pipeline, rootSignature] = pipelineSignatureResult.Get();
+    auto rootSignatureResult = pipelineManager->GetRootSignature(PipelineType::InstancedColorMaterialLight);
+    CHECK(rootSignatureResult.Valid(), false, "Unable to retrieve pipeline and root signature");
+    auto rootSignature = rootSignatureResult.Get();
 
     cmdList->RSSetViewports(1, &mViewport);
     cmdList->RSSetScissorRects(1, &mScissors);
 
-    cmdList->SetPipelineState(pipeline);
     cmdList->SetGraphicsRootSignature(rootSignature);
 
     auto backbufferHandle = d3d->GetBackbufferHandle();
@@ -54,13 +54,12 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     cmdList->OMSetRenderTargets(1, &backbufferHandle, TRUE, &dsvHandle);
 
     Model::Bind(cmdList);
+    ResetModelsInstances();
+
+    mMaze.Render();
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    RenderModels(cmdList, frameResources,
-        [](Model* m) -> bool
-        {
-            return m->ShouldRender();
-        });
+    RenderModels(cmdList, frameResources);
 
     return true;
 }
@@ -93,7 +92,12 @@ bool Application::OnResize()
 
 std::unordered_map<uuids::uuid, uint32_t> Application::GetInstanceCount()
 {
-    return std::unordered_map<uuids::uuid, uint32_t>();
+    std::unordered_map<uuids::uuid, uint32_t> result;
+    for (const auto& model : mModels)
+    {
+        result[model.GetUUID()] = model.GetInstanceCount();
+    }
+    return result;
 }
 
 uint32_t Application::GetModelCount()
@@ -103,7 +107,9 @@ uint32_t Application::GetModelCount()
 
 ID3D12PipelineState* Application::GetBeginFramePipeline()
 {
-    return nullptr;
+    auto pipelineResult = PipelineManager::Get()->GetPipeline(PipelineType::InstancedColorMaterialLight);
+    CHECK(pipelineResult.Valid(), nullptr, "Cannot get pipeline for begin frame");
+    return pipelineResult.Get();
 }
 
 bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, ID3D12CommandAllocator* cmdAllocator)
@@ -124,10 +130,10 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     mCamera.Create({ 0.0f, 0.0f, -3.0f }, (float)mClientWidth / mClientHeight);
 
     Maze::MazeInitializationInfo mazeInfo = {};
-    mazeInfo.rows = Random::get(5, 20);
-    mazeInfo.cols = Random::get(5, 20);
-    mazeInfo.tileWidth = 20.0f;
-    mazeInfo.tileDepth = 20.0f;
+    mazeInfo.rows = Random::get(10, 20);
+    mazeInfo.cols = Random::get(10, 20);
+    mazeInfo.tileWidth = 1.0f;
+    mazeInfo.tileDepth = 1.0f;
     mazeInfo.cubeModel = mCubeModel;
     auto startPositionResult = mMaze.Create(mazeInfo);
     CHECK(startPositionResult.Valid(), false, "Unable to create maze");
@@ -213,39 +219,39 @@ void Application::UpdateCamera(FrameResources* frameResources)
 
 void Application::UpdateModels(FrameResources* frameResources)
 {
-    for (auto& model : mModels)
-    {
-        if (model.DirtyFrames > 0)
-        {
-            auto mappedMemory = frameResources->PerObjectBuffers.GetMappedMemory(model.ConstantBufferIndex);
-            auto &instanceInfo = model.GetInstanceInfo();
-            mappedMemory->World = DirectX::XMMatrixTranspose(instanceInfo.WorldMatrix);
-            mappedMemory->TexWorld = DirectX::XMMatrixIdentity();
-            model.DirtyFrames--;
-        }
-    }
+    //for (auto& model : mModels)
+    //{
+    //    if (model.DirtyFrames > 0)
+    //    {
+    //        auto mappedMemory = frameResources->PerObjectBuffers.GetMappedMemory(model.ConstantBufferIndex);
+    //        auto &instanceInfo = model.GetInstanceInfo();
+    //        mappedMemory->World = DirectX::XMMatrixTranspose(instanceInfo.WorldMatrix);
+    //        mappedMemory->TexWorld = DirectX::XMMatrixIdentity();
+    //        model.DirtyFrames--;
+    //    }
+    //}
 }
 
-void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources, std::function<bool(Model*)> callback)
+void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources)
 {
     auto textureManager = TextureManager::Get();
 
-    cmdList->SetGraphicsRootConstantBufferView(1, frameResources->PerPassBuffers.GetGPUVirtualAddress());
-    cmdList->SetGraphicsRootConstantBufferView(3, frameResources->LightsBuffer.GetGPUVirtualAddress());
+    cmdList->SetGraphicsRootConstantBufferView(0, frameResources->PerPassBuffers.GetGPUVirtualAddress());
+    cmdList->SetGraphicsRootConstantBufferView(2, frameResources->LightsBuffer.GetGPUVirtualAddress());
 
     cmdList->SetDescriptorHeaps(1, textureManager->GetSrvUavDescriptorHeap().GetAddressOf());
 
     for (unsigned int i = 0; i < mModels.size(); ++i)
     {
-        CHECKCONT(callback(&mModels[i]), "");
-        auto perObjectBufferAddress = frameResources->PerObjectBuffers.GetGPUVirtualAddress();
-        perObjectBufferAddress += mModels[i].ConstantBufferIndex * frameResources->PerObjectBuffers.GetElementSize();
-        cmdList->SetGraphicsRootConstantBufferView(0, perObjectBufferAddress);
-
         auto materialBufferAddress = frameResources->MaterialsBuffers.GetGPUVirtualAddress();
         const auto* objectMaterial = mModels[i].GetMaterial();
         materialBufferAddress += (uint64_t)objectMaterial->ConstantBufferIndex * frameResources->MaterialsBuffers.GetElementSize();
-        cmdList->SetGraphicsRootConstantBufferView(2, materialBufferAddress);
+        cmdList->SetGraphicsRootConstantBufferView(1, materialBufferAddress);
+
+        auto& uuid = mModels[i].GetUUID();
+        auto instanceCount = mModels[i].PrepareInstances(frameResources->InstanceBuffer);
+        
+        cmdList->SetGraphicsRootShaderResourceView(3, frameResources->InstanceBuffer[uuid].GetGPUVirtualAddress());
 
         if (objectMaterial->GetTextureIndex() != -1)
         {
@@ -254,9 +260,17 @@ void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResource
                 4, textureSRVResult.Get());
         }
         cmdList->DrawIndexedInstanced(mModels[i].GetIndexCount(),
-            1, // Number of instances
+            instanceCount, // Number of instances
             mModels[i].GetStartIndexLocation(),
             mModels[i].GetBaseVertexLocation(),
             0); // Start InstanceLocation
+    }
+}
+
+void Application::ResetModelsInstances()
+{
+    for (auto& model : mModels)
+    {
+        model.ResetCurrentInstances();
     }
 }

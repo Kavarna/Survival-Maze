@@ -21,6 +21,8 @@ public:
 public:
     Result<DirectX::XMINT2> Create(const MazeInitializationInfo& info);
 
+    void Render();
+
 private:
     Result<DirectX::XMINT2> Lee();
 
@@ -49,5 +51,6 @@ private:
     Model* mCubeModel = nullptr;
     
 
+    std::vector<uint32_t> mTileInstances;
     std::vector<std::vector<TileType>> mTiles;
 };

@@ -76,7 +76,7 @@ struct FrameResources
 
     ComPtr<ID3D12CommandAllocator> CommandAllocator;
 
-    UploadBuffer<PerObjectInfo> PerObjectBuffers;
+    // UploadBuffer<PerObjectInfo> PerObjectBuffers;
     UploadBuffer<PerPassInfo> PerPassBuffers;
     UploadBuffer<MaterialConstants> MaterialsBuffers;
     UploadBuffer<LightsBuffer> LightsBuffer;
