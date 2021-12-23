@@ -95,8 +95,8 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
     for (std::size_t i = 0; i < mTiles.size(); ++i) {
         for (std::size_t j = 0; j < mTiles[0].size(); ++j) {
             DirectX::XMFLOAT3 position;
-            DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-            // DirectX::XMFLOAT3 scale = { 2.0f * tileWidth, 2.0f, 2.0f * tileDepth };
+            // DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+            DirectX::XMFLOAT3 scale = { (float)tileWidth, 2.0f, (float)tileDepth };
             DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
             position.x = ((float)j - (float)mTiles[0].size()) * tileWidth;
             position.z = ((float)i - (float)mTiles.size()) * tileDepth;

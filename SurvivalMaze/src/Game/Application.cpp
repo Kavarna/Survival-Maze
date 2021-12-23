@@ -132,8 +132,8 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
     mazeInfo.cols = Random::get(10, 20);
-    mazeInfo.tileWidth = 1.0f;
-    mazeInfo.tileDepth = 1.0f;
+    mazeInfo.tileWidth = 3.0f;
+    mazeInfo.tileDepth = 3.0f;
     mazeInfo.cubeModel = mCubeModel;
     auto startPositionResult = mMaze.Create(mazeInfo);
     CHECK(startPositionResult.Valid(), false, "Unable to create maze");
