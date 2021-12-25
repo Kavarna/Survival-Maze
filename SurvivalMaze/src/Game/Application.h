@@ -4,6 +4,7 @@
 #include "Engine.h"
 #include "Maze.h"
 #include "CompositeModel.h"
+#include "Player.h"
 
 
 
@@ -42,7 +43,7 @@ private:
     std::vector<Model> mModels;
     Model* mCubeModel;
 
-    CompositeModel mPlayer;
+    Player mPlayer;
 
     SceneLight mSceneLight;
 

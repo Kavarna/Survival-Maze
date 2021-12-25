@@ -60,7 +60,6 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
 
     // mMaze.Render();
     mPlayer.Render();
-    mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
@@ -133,7 +132,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     CHECK(Model::InitBuffers(initializationCmdList, intermediaryResources), false, "Unable to initialize buffers for models");
 
     mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
-    CHECK(InitPlayerModel(), false, "Unable to initialize player model");
+    CHECK(mPlayer.Create(mCubeModel), false, "Unable to create player model");
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
@@ -151,50 +150,6 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     return true;
 }
 
-bool Application::InitPlayerModel()
-{
-    // Best way to skin a mesh :>
-    CHECK(mPlayer.Create(mCubeModel, DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f)), false, "Unable to create player composite");
-    mPlayer.ScaleFromParent(1.0f, 1.0f, 0.5f);
-
-    auto head = mPlayer.AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
-    CHECK(head, false, "Unable to add head to player composite model");
-    head->TranslateFromParent(0.0f, 1.6f, 0.0f);
-    head->ScaleFromParent(0.5f);
-
-    auto rightShoulder = mPlayer.AddChild(DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f));
-    CHECK(rightShoulder, false, "Unable to add right shoulder to player composite model");
-    rightShoulder->TranslateFromParent(1.6f, 0.5f, 0.0f);
-    rightShoulder->ScaleFromParent(0.5f);
-
-    auto rightArm = rightShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
-    CHECK(rightArm, false, "Unable to add right arm to player composite model");
-    rightArm->TranslateFromParent(0.0f, -1.1f, 0.0f);
-
-    auto rightLeg = mPlayer.AddChild(DirectX::XMFLOAT4(0.25, 0.25f, 1.0f, 1.0f));
-    CHECK(rightLeg, false, "Unable to add right leg to player composite model");
-    rightLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
-    rightLeg->TranslateFromParent(0.3f, -1.1f, 0.0f);
-
-    auto leftShoulder = mPlayer.AddChild(DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f));
-    CHECK(leftShoulder, false, "Unable to add left shoulder to player composite model");
-    leftShoulder->TranslateFromParent(-1.6f, 0.5f, 0.0f);
-    leftShoulder->ScaleFromParent(0.5f);
-
-    auto leftArm = leftShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
-    CHECK(leftArm, false, "Unable to add left arm to player composite model");
-    leftArm->TranslateFromParent(0.0f, -1.1f, 0.0f);
-
-    auto leftLeg = mPlayer.AddChild(DirectX::XMFLOAT4(0.25, 0.25f, 1.0f, 1.0f));
-    CHECK(leftLeg, false, "Unable to add right leg to player composite model");
-    leftLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
-    leftLeg->TranslateFromParent(-0.3f, -1.1f, 0.0f);
-
-    mPlayer.UpdateBoundingBox();
-
-    return true;
-}
-
 void Application::ReactToKeyPresses(float dt)
 {
     auto kb = mKeyboard->GetState();
@@ -203,6 +158,11 @@ void Application::ReactToKeyPresses(float dt)
     if (kb.Escape)
     {
         PostQuitMessage(0);
+    }
+
+    if (kb.H)
+    {
+        mPlayer.Walk(dt);
     }
 
     if (!mMenuActive)
