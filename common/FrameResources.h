@@ -3,6 +3,7 @@
 
 #include <Oblivion.h>
 #include "Utils/UploadBuffer.h"
+#include "Utils/BatchRenderer.h"
 
 
 struct PerObjectInfo
@@ -83,6 +84,8 @@ struct FrameResources
     
     // These should be unique per object, so we'll just use object's addres as key
     std::unordered_map<uuids::uuid, UploadBuffer<InstanceInfo>> InstanceBuffer;
+
+    BatchRenderer VertexBatchRenderer;
 
     uint32_t BlurRenderTargetIndex;
     uint32_t BlurDepthStencilIndex;

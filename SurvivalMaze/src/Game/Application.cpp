@@ -34,6 +34,14 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
 {
     auto d3d = Direct3D::Get();
     auto pipelineManager = PipelineManager::Get();
+    frameResources->VertexBatchRenderer.Begin();
+
+    for (float i = 0; i < 10; i += 1)
+    {
+        frameResources->VertexBatchRenderer.Vertex({ i, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f,1.0f });
+        frameResources->VertexBatchRenderer.Vertex({ i, 10.0f, 0.0f }, { 1.0f, 1.0f, 0.0f,1.0f });
+    }
+
     FLOAT backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
 
     auto rootSignatureResult = pipelineManager->GetRootSignature(PipelineType::InstancedColorMaterialLight);
@@ -62,6 +70,8 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
 
+
+    frameResources->VertexBatchRenderer.End(cmdList);
     return true;
 }
 
@@ -151,9 +161,9 @@ bool Application::InitPlayerModel()
     // Best way to skin a mesh :>
     CHECK(mPlayer.Create(mCubeModel, DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f)), false, "Unable to create player composite");
     mPlayer.TranslateFromParent(0.0f, 2.0f, 0.0f);
-    mPlayer.Scale(1.0f, 1.0f, 0.5f);
+    mPlayer.ScaleFromParent(1.0f, 1.0f, 0.5f);
 
-    auto head = mPlayer.AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70, 1.0f));
+    auto head = mPlayer.AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
     CHECK(head, false, "Unable to add head to player composite model");
     head->TranslateFromParent(0.0f, 1.6f, 0.0f);
     head->ScaleFromParent(0.5f);
@@ -163,7 +173,7 @@ bool Application::InitPlayerModel()
     rightShoulder->TranslateFromParent(1.6f, 0.5f, 0.0f);
     rightShoulder->ScaleFromParent(0.5f);
 
-    auto rightArm = rightShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70, 1.0f));
+    auto rightArm = rightShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
     CHECK(rightArm, false, "Unable to add right arm to player composite model");
     rightArm->TranslateFromParent(0.0f, -1.1f, 0.0f);
 
@@ -177,7 +187,7 @@ bool Application::InitPlayerModel()
     leftShoulder->TranslateFromParent(-1.6f, 0.5f, 0.0f);
     leftShoulder->ScaleFromParent(0.5f);
 
-    auto leftArm = leftShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70, 1.0f));
+    auto leftArm = leftShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
     CHECK(leftArm, false, "Unable to add left arm to player composite model");
     leftArm->TranslateFromParent(0.0f, -1.1f, 0.0f);
 
@@ -263,17 +273,6 @@ void Application::UpdateCamera(FrameResources* frameResources)
 
 void Application::UpdateModels(FrameResources* frameResources)
 {
-    //for (auto& model : mModels)
-    //{
-    //    if (model.DirtyFrames > 0)
-    //    {
-    //        auto mappedMemory = frameResources->PerObjectBuffers.GetMappedMemory(model.ConstantBufferIndex);
-    //        auto &instanceInfo = model.GetInstanceInfo();
-    //        mappedMemory->World = DirectX::XMMatrixTranspose(instanceInfo.WorldMatrix);
-    //        mappedMemory->TexWorld = DirectX::XMMatrixIdentity();
-    //        model.DirtyFrames--;
-    //    }
-    //}
 }
 
 void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources)

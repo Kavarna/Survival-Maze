@@ -31,6 +31,8 @@ bool FrameResources::Init(uint32_t numObjects, uint32_t numPasses, uint32_t numM
     CHECK(LightsBuffer.Init(1, true), false,
           "Unable to initialize lights buffer with {} elements", 1);
 
+    VertexBatchRenderer.Create();
+
     CD3DX12_RESOURCE_DESC backbufferDesc = CD3DX12_RESOURCE_DESC::Tex2D(
         Direct3D::kBackbufferFormat, width / kBlurScale, height / kBlurScale, 1, 0, 1, 0,
         D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
