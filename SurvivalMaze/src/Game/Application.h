@@ -3,6 +3,7 @@
 
 #include "Engine.h"
 #include "Maze.h"
+#include "CompositeModel.h"
 
 
 
@@ -26,6 +27,7 @@ public:
 
 private:
     bool InitModels(ID3D12GraphicsCommandList* initializationCmdList, ID3D12CommandAllocator* cmdAllocator);
+    bool InitPlayerModel();
 
 private:
     void ReactToKeyPresses(float dt);
@@ -39,6 +41,8 @@ private:
 private:
     std::vector<Model> mModels;
     Model* mCubeModel;
+
+    CompositeModel mPlayer;
 
     SceneLight mSceneLight;
 

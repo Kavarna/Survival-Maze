@@ -98,8 +98,8 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
             // DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
             DirectX::XMFLOAT3 scale = { (float)tileWidth, 2.0f, (float)tileDepth };
             DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-            position.x = ((float)j - (float)mTiles[0].size()) * tileWidth;
-            position.z = ((float)i - (float)mTiles.size()) * tileDepth;
+            position.x = ((float)j - (float)mTiles[0].size() / 2.0f) * tileWidth;
+            position.z = ((float)i - (float)mTiles.size() / 2.0f) * tileDepth;
             
             switch (mTiles[i][j]) {
             case TileType::Enemy:

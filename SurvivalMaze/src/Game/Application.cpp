@@ -12,7 +12,7 @@ Application::Application() :
 
 bool Application::OnInit(ID3D12GraphicsCommandList* initializationCmdList, ID3D12CommandAllocator* cmdAllocator)
 {
-    mSceneLight.SetAmbientColor(0.02f, 0.02f, 0.02f, 1.0f);
+    mSceneLight.SetAmbientColor(0.1f, 0.1f, 0.1f, 1.0f);
     // mSceneLight.SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
     mSceneLight.AddDirectionalLight("Sun", DirectX::XMFLOAT3(-0.5f, -1.0f, 0.0f), DirectX::XMFLOAT3(0.5f, 0.5f, 0.5f));
 
@@ -34,7 +34,7 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
 {
     auto d3d = Direct3D::Get();
     auto pipelineManager = PipelineManager::Get();
-    FLOAT backgroundColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    FLOAT backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
 
     auto rootSignatureResult = pipelineManager->GetRootSignature(PipelineType::InstancedColorMaterialLight);
     CHECK(rootSignatureResult.Valid(), false, "Unable to retrieve pipeline and root signature");
@@ -57,6 +57,7 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     ResetModelsInstances();
 
     mMaze.Render();
+    mPlayer.Render();
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
@@ -121,13 +122,13 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
 
     mModels.emplace_back(Direct3D::kBufferCount, 0);
     CHECK(mModels.back().Create("Resources\\Cube.obj"), false, "Unable to load Suzanne");
-    mModels.back().Translate(0.0f, 0.0f, 0.0f);
     mCubeModel = &mModels.back();
 
     ComPtr<ID3D12Resource> intermediaryResources[2];
     CHECK(Model::InitBuffers(initializationCmdList, intermediaryResources), false, "Unable to initialize buffers for models");
 
-    mCamera.Create({ 0.0f, 0.0f, -3.0f }, (float)mClientWidth / mClientHeight);
+    mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
+    CHECK(InitPlayerModel(), false, "Unable to initialize player model");
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
@@ -141,6 +142,49 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
 
     CHECK_HR(initializationCmdList->Close(), false);
     d3d->Flush(initializationCmdList, mFence.Get(), ++mCurrentFrame);
+
+    return true;
+}
+
+bool Application::InitPlayerModel()
+{
+    // Best way to skin a mesh :>
+    CHECK(mPlayer.Create(mCubeModel, DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f)), false, "Unable to create player composite");
+    mPlayer.TranslateFromParent(0.0f, 2.0f, 0.0f);
+    mPlayer.Scale(1.0f, 1.0f, 0.5f);
+
+    auto head = mPlayer.AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70, 1.0f));
+    CHECK(head, false, "Unable to add head to player composite model");
+    head->TranslateFromParent(0.0f, 1.6f, 0.0f);
+    head->ScaleFromParent(0.5f);
+
+    auto rightShoulder = mPlayer.AddChild(DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f));
+    CHECK(rightShoulder, false, "Unable to add right shoulder to player composite model");
+    rightShoulder->TranslateFromParent(1.6f, 0.5f, 0.0f);
+    rightShoulder->ScaleFromParent(0.5f);
+
+    auto rightArm = rightShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70, 1.0f));
+    CHECK(rightArm, false, "Unable to add right arm to player composite model");
+    rightArm->TranslateFromParent(0.0f, -1.1f, 0.0f);
+
+    auto rightLeg = mPlayer.AddChild(DirectX::XMFLOAT4(0.25, 0.25f, 1.0f, 1.0f));
+    CHECK(rightLeg, false, "Unable to add right leg to player composite model");
+    rightLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
+    rightLeg->TranslateFromParent(0.3f, -1.1f, 0.0f);
+
+    auto leftShoulder = mPlayer.AddChild(DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f));
+    CHECK(leftShoulder, false, "Unable to add left shoulder to player composite model");
+    leftShoulder->TranslateFromParent(-1.6f, 0.5f, 0.0f);
+    leftShoulder->ScaleFromParent(0.5f);
+
+    auto leftArm = leftShoulder->AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70, 1.0f));
+    CHECK(leftArm, false, "Unable to add left arm to player composite model");
+    leftArm->TranslateFromParent(0.0f, -1.1f, 0.0f);
+
+    auto leftLeg = mPlayer.AddChild(DirectX::XMFLOAT4(0.25, 0.25f, 1.0f, 1.0f));
+    CHECK(leftLeg, false, "Unable to add right leg to player composite model");
+    leftLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
+    leftLeg->TranslateFromParent(-0.3f, -1.1f, 0.0f);
 
     return true;
 }
