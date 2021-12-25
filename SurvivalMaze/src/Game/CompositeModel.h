@@ -19,6 +19,11 @@ public:
         const DirectX::XMMATRIX& transform = DirectX::XMMatrixIdentity());
 
     void Render(const DirectX::XMMATRIX& compositeTransform = DirectX::XMMatrixIdentity());
+    void RenderDebug(BatchRenderer& renderer);
+
+public:
+    void UpdateBoundingBox(const DirectX::XMMATRIX& compositeTransform = DirectX::XMMatrixIdentity());
+    const DirectX::BoundingBox& GetBoundingBox() const;
 
 public:
     void Identity();
@@ -45,5 +50,7 @@ private:
 
     DirectX::XMMATRIX mFromParentTransformation = DirectX::XMMatrixIdentity();
     DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
+
+    DirectX::BoundingBox mBoundingBox;
 };
 

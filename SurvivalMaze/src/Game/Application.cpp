@@ -36,12 +36,6 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     auto pipelineManager = PipelineManager::Get();
     frameResources->VertexBatchRenderer.Begin();
 
-    for (float i = 0; i < 10; i += 1)
-    {
-        frameResources->VertexBatchRenderer.Vertex({ i, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f,1.0f });
-        frameResources->VertexBatchRenderer.Vertex({ i, 10.0f, 0.0f }, { 1.0f, 1.0f, 0.0f,1.0f });
-    }
-
     FLOAT backgroundColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
 
     auto rootSignatureResult = pipelineManager->GetRootSignature(PipelineType::InstancedColorMaterialLight);
@@ -64,8 +58,9 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     Model::Bind(cmdList);
     ResetModelsInstances();
 
-    mMaze.Render();
+    // mMaze.Render();
     mPlayer.Render();
+    mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
@@ -160,7 +155,6 @@ bool Application::InitPlayerModel()
 {
     // Best way to skin a mesh :>
     CHECK(mPlayer.Create(mCubeModel, DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f)), false, "Unable to create player composite");
-    mPlayer.TranslateFromParent(0.0f, 2.0f, 0.0f);
     mPlayer.ScaleFromParent(1.0f, 1.0f, 0.5f);
 
     auto head = mPlayer.AddChild(DirectX::XMFLOAT4(1.0f, 0.80f, 0.70f, 1.0f));
@@ -195,6 +189,8 @@ bool Application::InitPlayerModel()
     CHECK(leftLeg, false, "Unable to add right leg to player composite model");
     leftLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
     leftLeg->TranslateFromParent(-0.3f, -1.1f, 0.0f);
+
+    mPlayer.UpdateBoundingBox();
 
     return true;
 }

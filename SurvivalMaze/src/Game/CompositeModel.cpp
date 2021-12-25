@@ -43,6 +43,29 @@ void CompositeModel::Render(const DirectX::XMMATRIX& compositeTransform)
     }
 }
 
+void CompositeModel::RenderDebug(BatchRenderer& renderer)
+{
+    renderer.BoundingBox(mBoundingBox, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
+}
+
+void CompositeModel::UpdateBoundingBox(const DirectX::XMMATRIX& compositeTransform)
+{
+    const auto& boundingBox = mUsedModel->GetBoundingBox();
+    auto currentTransform = mFromParentTransformation * compositeTransform;
+    boundingBox.Transform(mBoundingBox, currentTransform);
+    for (auto& child : mChildren)
+    {
+        child->UpdateBoundingBox(currentTransform);
+        
+        DirectX::BoundingBox::CreateMerged(mBoundingBox, mBoundingBox, child->mBoundingBox);
+    }
+}
+
+const DirectX::BoundingBox& CompositeModel::GetBoundingBox() const
+{
+    return mBoundingBox;
+}
+
 void CompositeModel::Identity()
 {
     mTransform = DirectX::XMMatrixIdentity();
