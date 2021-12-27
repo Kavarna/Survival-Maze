@@ -16,6 +16,7 @@ public:
     void Render();
 
     void Walk(float dt);
+    void ResetTransform();
 
 private:
     CompositeModel mModel;
@@ -25,6 +26,10 @@ private:
     CompositeModel* mLeftShoulder;
     CompositeModel* mRightLeg;
     CompositeModel* mLeftLeg;
+
+    float mAnimationSpeed = 3.0f;
+    float mAnimationTime = 0.0f;
+    int mAnimationDelta = 1;
 
     DirectX::XMMATRIX mWorld = DirectX::XMMatrixIdentity();
 };

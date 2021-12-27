@@ -22,7 +22,7 @@ bool Player::Create(Model* usedModel)
 
     mRightLeg = mModel.AddChild(DirectX::XMFLOAT4(0.25, 0.25f, 1.0f, 1.0f));
     CHECK(mRightLeg, false, "Unable to add right leg to player composite model");
-    mRightLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
+    mRightLeg->ScaleFromParent(0.4f, 1.0f, 0.75f);
     mRightLeg->TranslateFromParent(0.3f, -1.1f, 0.0f);
 
     mLeftShoulder = mModel.AddChild(DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f));
@@ -36,7 +36,7 @@ bool Player::Create(Model* usedModel)
 
     mLeftLeg = mModel.AddChild(DirectX::XMFLOAT4(0.25, 0.25f, 1.0f, 1.0f));
     CHECK(mLeftLeg, false, "Unable to add right leg to player composite model");
-    mLeftLeg->ScaleFromParent(0.4f, 1.0f, 1.0f);
+    mLeftLeg->ScaleFromParent(0.4f, 1.0f, 0.75f);
     mLeftLeg->TranslateFromParent(-0.3f, -1.1f, 0.0f);
 
     mModel.UpdateBoundingBox();
@@ -51,8 +51,40 @@ void Player::Render()
 
 void Player::Walk(float dt)
 {
-    mHead->RotateY(dt);
+    ResetTransform();
+    mAnimationTime += dt * mAnimationDelta * mAnimationSpeed;
 
-    mRightShoulder->RotateX(dt);
-    mLeftShoulder->RotateX(-dt);
+    if (mAnimationTime >= DirectX::XM_PIDIV4)
+    {
+        mAnimationDelta = -1;
+    }
+    else if (mAnimationTime <= -DirectX::XM_PIDIV4)
+    {
+        mAnimationDelta = 1;
+    }
+
+    mHead->RotateY(mAnimationTime);
+
+    mRightShoulder->RotateX(mAnimationTime);
+    mLeftShoulder->RotateX(-mAnimationTime);
+
+    mRightLeg->Translate(0.0f, -1.0f, 0.0f);
+    mRightLeg->RotateX(-mAnimationTime * 0.40f);
+    mRightLeg->Translate(0.0f, 1.0f, 0.0f);
+
+    mLeftLeg->Translate(0.0f, -1.0f, 0.0f);
+    mLeftLeg->RotateX(mAnimationTime * 0.40f);
+    mLeftLeg->Translate(0.0f, 1.0f, 0.0f);
+
+}
+
+void Player::ResetTransform()
+{
+    mHead->Identity();
+
+    mRightShoulder->Identity();
+    mLeftShoulder->Identity();
+    
+    mRightLeg->Identity();
+    mLeftLeg->Identity();
 }

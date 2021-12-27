@@ -154,15 +154,21 @@ void Application::ReactToKeyPresses(float dt)
 {
     auto kb = mKeyboard->GetState();
     auto mouse = mMouse->GetState();
+    bool mPlayerMoved = false;
 
     if (kb.Escape)
     {
         PostQuitMessage(0);
     }
 
-    if (kb.H)
+    if (kb.Up)
     {
         mPlayer.Walk(dt);
+        mPlayerMoved = true;
+    }
+    if (!mPlayerMoved)
+    {
+        mPlayer.ResetTransform();
     }
 
     if (!mMenuActive)
