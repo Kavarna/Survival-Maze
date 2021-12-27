@@ -49,6 +49,11 @@ void Player::Render()
     mModel.Render(mWorld);
 }
 
+void Player::RenderDebug(BatchRenderer& renderer)
+{
+    mModel.RenderDebug(renderer);
+}
+
 void Player::Walk(float dt)
 {
     ResetTransform();
@@ -63,7 +68,7 @@ void Player::Walk(float dt)
         mAnimationDelta = 1;
     }
 
-    mHead->RotateY(mAnimationTime);
+    mHead->RotateY(mAnimationTime * 0.5f    );
 
     mRightShoulder->RotateX(mAnimationTime);
     mLeftShoulder->RotateX(-mAnimationTime);
@@ -76,6 +81,12 @@ void Player::Walk(float dt)
     mLeftLeg->RotateX(mAnimationTime * 0.40f);
     mLeftLeg->Translate(0.0f, 1.0f, 0.0f);
 
+}
+
+void Player::ResetAnimation()
+{
+    ResetTransform();
+    mAnimationTime = 0.0f;
 }
 
 void Player::ResetTransform()

@@ -58,8 +58,9 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     Model::Bind(cmdList);
     ResetModelsInstances();
 
-    // mMaze.Render();
+    mMaze.Render();
     mPlayer.Render();
+    mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
@@ -90,8 +91,8 @@ bool Application::OnResize()
     mScissors.bottom = mClientWidth;
 
 
-    mCamera.Create(mCamera.GetPosition(), (float)mClientWidth / mClientHeight);
-
+    // mCamera.Create(mCamera.GetPosition() (float)mClientWidth / mClientHeight);
+    mCamera.Create((float)mClientWidth / mClientHeight);
     return true;
 }
 
@@ -131,8 +132,10 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     ComPtr<ID3D12Resource> intermediaryResources[2];
     CHECK(Model::InitBuffers(initializationCmdList, intermediaryResources), false, "Unable to initialize buffers for models");
 
-    mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
+    // mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
+    mCamera.Create((float)mClientWidth / mClientHeight);
     CHECK(mPlayer.Create(mCubeModel), false, "Unable to create player model");
+    mPlayer.mModel.Translate(0.0f, 2.0f, 0.0f);
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
@@ -152,6 +155,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
 
 void Application::ReactToKeyPresses(float dt)
 {
+    static int lastScrollWheelValue = 0;
     auto kb = mKeyboard->GetState();
     auto mouse = mMouse->GetState();
     bool mPlayerMoved = false;
@@ -168,31 +172,33 @@ void Application::ReactToKeyPresses(float dt)
     }
     if (!mPlayerMoved)
     {
-        mPlayer.ResetTransform();
+        mPlayer.ResetAnimation();
     }
 
     if (!mMenuActive)
     {
-        if (kb.W)
-        {
-            mCamera.MoveForward(dt);
-        }
-        if (kb.S)
-        {
-            mCamera.MoveBackward(dt);
-        }
-        if (kb.D)
-        {
-            mCamera.MoveRight(dt);
-        }
-        if (kb.A)
-        {
-            mCamera.MoveLeft(dt);
-        }
+        //if (kb.W)
+        //{
+        //    mCamera.MoveForward(dt);
+        //}
+        //if (kb.S)
+        //{
+        //    mCamera.MoveBackward(dt);
+        //}
+        //if (kb.D)
+        //{
+        //    mCamera.MoveRight(dt);
+        //}
+        //if (kb.A)
+        //{
+        //    mCamera.MoveLeft(dt);
+        //}
 
         mouse.x = Math::clamp(mouse.x, -25, 25);
         mouse.y = Math::clamp(mouse.y, -25, 25);
         mCamera.Update(dt, (float)mouse.x, (float)mouse.y);
+        int scrollValue = mouse.scrollWheelValue - lastScrollWheelValue;
+        mCamera.AdjustZoom((float)scrollValue * 0.01f);
     }
     else
     {
@@ -217,6 +223,8 @@ void Application::ReactToKeyPresses(float dt)
     }
     else if (!mouse.rightButton)
         bRightClick = false;
+
+    lastScrollWheelValue = mouse.scrollWheelValue;
 }
 
 void Application::UpdateCamera(FrameResources* frameResources)

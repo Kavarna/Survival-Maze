@@ -14,11 +14,15 @@ public:
 public:
     bool Create(Model* usedModel);
     void Render();
+    void RenderDebug(BatchRenderer& renderer);
 
     void Walk(float dt);
-    void ResetTransform();
+    void ResetAnimation();
 
 private:
+    void ResetTransform();
+
+public:
     CompositeModel mModel;
 
     CompositeModel* mHead;

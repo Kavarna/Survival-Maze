@@ -45,7 +45,9 @@ void CompositeModel::Render(const DirectX::XMMATRIX& compositeTransform)
 
 void CompositeModel::RenderDebug(BatchRenderer& renderer)
 {
-    renderer.BoundingBox(mBoundingBox, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
+    DirectX::BoundingBox worldBoundingBox;
+    mBoundingBox.Transform(worldBoundingBox, mTransform);
+    renderer.BoundingBox(worldBoundingBox, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
 }
 
 void CompositeModel::UpdateBoundingBox(const DirectX::XMMATRIX& compositeTransform)

@@ -52,7 +52,9 @@ private:
     D3D12_VIEWPORT mViewport;
     D3D12_RECT mScissors;
 
-    Camera mCamera;
+    // Camera mCamera;
+    ThirdPersonCamera mCamera;
+    
 
     bool mMenuActive = true;
 
