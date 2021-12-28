@@ -33,7 +33,7 @@ CompositeModel* __vectorcall CompositeModel::AddChild(const DirectX::XMFLOAT4& c
 void CompositeModel::Render(const DirectX::XMMATRIX& compositeTransform)
 {
     auto& worldMatrix = mUsedModel->GetInstanceInfo(mInstanceID).WorldMatrix;
-    worldMatrix = mTransform * mFromParentTransformation * compositeTransform;
+    worldMatrix = mFromParentTransformation * mTransform * compositeTransform;
 
     mUsedModel->AddCurrentInstance(mInstanceID);
 

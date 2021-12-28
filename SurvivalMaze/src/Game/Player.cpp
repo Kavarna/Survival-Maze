@@ -1,7 +1,11 @@
 #include "Player.h"
 
+using namespace DirectX;
+
 bool Player::Create(Model* usedModel)
 {
+    mPosition = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
     // Best way to skin a mesh :>
     CHECK(mModel.Create(usedModel, DirectX::XMFLOAT4(0.25f, 0.87f, 0.81f, 1.0f)), false, "Unable to create player composite");
     mModel.ScaleFromParent(1.0f, 1.0f, 0.5f);
@@ -46,7 +50,10 @@ bool Player::Create(Model* usedModel)
 
 void Player::Render()
 {
-    mModel.Render(mWorld);
+    mModel.Identity();
+    mModel.RotateY(mYAngle);
+    mModel.Translate(XMVectorGetX(mPosition), XMVectorGetY(mPosition), XMVectorGetZ(mPosition));
+    mModel.Render();
 }
 
 void Player::RenderDebug(BatchRenderer& renderer)
@@ -54,9 +61,22 @@ void Player::RenderDebug(BatchRenderer& renderer)
     mModel.RenderDebug(renderer);
 }
 
-void Player::Walk(float dt)
+bool Player::Walk(float dt)
+{
+    HandleAnimation(dt);
+    return MoveForward(dt);
+}
+
+bool Player::Strafe(float dt)
+{
+    HandleAnimation(dt);
+    return MoveRight(dt);
+}
+
+void Player::HandleAnimation(float dt)
 {
     ResetTransform();
+    dt = fabs(dt); // use the same animation for forward & backward walking since the model is symmetrical
     mAnimationTime += dt * mAnimationDelta * mAnimationSpeed;
 
     if (mAnimationTime >= DirectX::XM_PIDIV4)
@@ -68,7 +88,7 @@ void Player::Walk(float dt)
         mAnimationDelta = 1;
     }
 
-    mHead->RotateY(mAnimationTime * 0.5f    );
+    mHead->RotateY(mAnimationTime * 0.5f);
 
     mRightShoulder->RotateX(mAnimationTime);
     mLeftShoulder->RotateX(-mAnimationTime);
@@ -80,13 +100,17 @@ void Player::Walk(float dt)
     mLeftLeg->Translate(0.0f, -1.0f, 0.0f);
     mLeftLeg->RotateX(mAnimationTime * 0.40f);
     mLeftLeg->Translate(0.0f, 1.0f, 0.0f);
-
 }
 
 void Player::ResetAnimation()
 {
     ResetTransform();
     mAnimationTime = 0.0f;
+}
+
+void Player::SetCamera(ICamera* camera)
+{
+    mCamera = camera;
 }
 
 void Player::ResetTransform()
@@ -98,4 +122,70 @@ void Player::ResetTransform()
     
     mRightLeg->Identity();
     mLeftLeg->Identity();
+}
+
+bool Player::MoveForward(float dt)
+{
+    auto actualDirection = mCamera->GetDirection();
+    actualDirection = XMVectorSetY(actualDirection, 0.0f);
+    actualDirection = XMVector3Normalize(actualDirection);
+    
+    mPosition = mPosition + actualDirection * dt * mMoveSpeed;
+    
+    mYAngle = GetYAngle(actualDirection);
+
+    if (auto thirdPersonCamera = dynamic_cast<ThirdPersonCamera*>(mCamera); thirdPersonCamera)
+    {
+        thirdPersonCamera->SetTarget(mPosition);
+    }
+
+    return true;
+}
+
+float Player::GetYAngle(const DirectX::XMVECTOR& actualDirection)
+{
+    float zDirection = XMVectorGetZ(actualDirection);
+    XMVECTOR v1, v2;
+    v1 = XMVectorSet(XMVectorGetX(actualDirection), zDirection, 0.0f, 1.0f);
+    v2 = XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f); // Forward direction projected in XZ coordinates
+    float rawAngle;
+    rawAngle = XMVectorGetX(XMVector2AngleBetweenNormals(v1, v2));
+
+    float angleToRight;
+    v2 = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f); // Right direction projected in XZ coordinates
+    angleToRight = XMVectorGetX(XMVector2AngleBetweenNormals(v1, v2));
+
+    float angleToLeft;
+    v2 = XMVectorSet(-1.0f, 0.0f, 0.0f, 1.0f); // Left direction projected in XZ coordinates
+    angleToLeft = XMVectorGetX(XMVector2AngleBetweenNormals(v1, v2));
+
+    float finalAngle;
+    if (angleToRight >= angleToLeft)
+    {
+        finalAngle = -rawAngle;
+    }
+    else
+    {
+        finalAngle = rawAngle;
+    }
+
+    return finalAngle;
+}
+
+bool Player::MoveRight(float dt)
+{
+    auto actualDirection = mCamera->GetRightDirection();
+    actualDirection = XMVectorSetY(actualDirection, 0.0f);
+    actualDirection = XMVector3Normalize(actualDirection);
+
+    mPosition = mPosition + actualDirection * dt * mMoveSpeed;
+
+    mYAngle = GetYAngle(actualDirection);
+
+    if (auto thirdPersonCamera = dynamic_cast<ThirdPersonCamera*>(mCamera); thirdPersonCamera)
+    {
+        thirdPersonCamera->SetTarget(mPosition);
+    }
+
+    return true;
 }

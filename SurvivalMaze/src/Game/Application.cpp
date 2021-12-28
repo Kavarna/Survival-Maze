@@ -135,13 +135,14 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     // mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
     mCamera.Create((float)mClientWidth / mClientHeight);
     CHECK(mPlayer.Create(mCubeModel), false, "Unable to create player model");
-    mPlayer.mModel.Translate(0.0f, 2.0f, 0.0f);
+    mPlayer.SetCamera(&mCamera);
+    mPlayer.mPosition = DirectX::XMVectorSetY(mPlayer.mPosition, 1.5f);
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
     mazeInfo.cols = Random::get(10, 20);
-    mazeInfo.tileWidth = 3.0f;
-    mazeInfo.tileDepth = 3.0f;
+    mazeInfo.tileWidth = 5.0f;
+    mazeInfo.tileDepth = 5.0f;
     mazeInfo.cubeModel = mCubeModel;
     auto startPositionResult = mMaze.Create(mazeInfo);
     CHECK(startPositionResult.Valid(), false, "Unable to create maze");
@@ -165,10 +166,33 @@ void Application::ReactToKeyPresses(float dt)
         PostQuitMessage(0);
     }
 
-    if (kb.Up)
+    if (kb.Up || kb.W)
     {
-        mPlayer.Walk(dt);
-        mPlayerMoved = true;
+        if (mPlayer.Walk(dt))
+        {
+            mPlayerMoved = true;
+        }
+    }
+    if (!mPlayerMoved && (kb.Down || kb.S))
+    {
+        if (mPlayer.Walk(-dt))
+        {
+            mPlayerMoved = true;
+        }
+    }
+    if (!mPlayerMoved && (kb.Right || kb.D))
+    {
+        if (mPlayer.Strafe(dt))
+        {
+            mPlayerMoved = true;
+        }
+    }
+    if (!mPlayerMoved && (kb.Left || kb.A))
+    {
+        if (mPlayer.Strafe(-dt))
+        {
+            mPlayerMoved = true;
+        }
     }
     if (!mPlayerMoved)
     {
@@ -177,23 +201,6 @@ void Application::ReactToKeyPresses(float dt)
 
     if (!mMenuActive)
     {
-        //if (kb.W)
-        //{
-        //    mCamera.MoveForward(dt);
-        //}
-        //if (kb.S)
-        //{
-        //    mCamera.MoveBackward(dt);
-        //}
-        //if (kb.D)
-        //{
-        //    mCamera.MoveRight(dt);
-        //}
-        //if (kb.A)
-        //{
-        //    mCamera.MoveLeft(dt);
-        //}
-
         mouse.x = Math::clamp(mouse.x, -25, 25);
         mouse.y = Math::clamp(mouse.y, -25, 25);
         mCamera.Update(dt, (float)mouse.x, (float)mouse.y);

@@ -108,8 +108,8 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
                 position.y = -1.0f;
                 break;
             case TileType::Wall:
-                position.y = 0.0f;
-                scale.y = 3.0f;
+                position.y = 1.0f;
+                scale.y = 5.0f;
                 color.x = 1.0f;
                 color.y = 0.0f;
                 color.z = 0.0f;
