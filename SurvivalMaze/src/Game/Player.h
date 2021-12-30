@@ -4,18 +4,20 @@
 #include "Oblivion.h"
 #include "CompositeModel.h"
 #include "Camera.h"
+#include "Maze.h"
 #include "ThirdPersonCamera.h"
 
 
 OBLIVION_ALIGN(16)
 class Player
 {
+    static constexpr const float distanceToWallInFrames = 2;
 public:
     Player() = default;
     ~Player() = default;
 
 public:
-    bool Create(Model* usedModel);
+    bool Create(Model* usedModel, Maze* maze);
     void Render();
     void RenderDebug(BatchRenderer& renderer);
 
@@ -28,12 +30,13 @@ public:
 
 private:
     void ResetTransform();
-    bool MoveForward(float dt);
+    bool __vectorcall MoveDirection(float dt, DirectX::XMVECTOR actualDirection);
     float GetYAngle(const DirectX::XMVECTOR& actualDirection);
-    bool MoveRight(float dt);
+    bool __vectorcall PositionCollidesWithMaze(const DirectX::XMVECTOR& position);
 
 public:
     ICamera* mCamera;
+    Maze* mMaze;
 
     CompositeModel mModel;
 

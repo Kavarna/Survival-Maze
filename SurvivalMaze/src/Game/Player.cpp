@@ -2,8 +2,12 @@
 
 using namespace DirectX;
 
-bool Player::Create(Model* usedModel)
+bool Player::Create(Model* usedModel, Maze* maze)
 {
+    CHECK(maze, false, "Can't create a player without a maze");
+    
+    mMaze = maze;
+    
     mPosition = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 
     // Best way to skin a mesh :>
@@ -45,6 +49,12 @@ bool Player::Create(Model* usedModel)
 
     mModel.UpdateBoundingBox();
 
+    //auto& boundingBox = mModel.GetBoundingBox();
+    //// Increse the bounding box size to prevent situation in which you can get stuck in walls when changing direction
+    //boundingBox.Extents.x *= 1.5f;
+    //boundingBox.Extents.y *= 1.5f;
+    //boundingBox.Extents.z *= 1.5f;
+
     return true;
 }
 
@@ -64,13 +74,13 @@ void Player::RenderDebug(BatchRenderer& renderer)
 bool Player::Walk(float dt)
 {
     HandleAnimation(dt);
-    return MoveForward(dt);
+    return MoveDirection(dt, mCamera->GetDirection());
 }
 
 bool Player::Strafe(float dt)
 {
     HandleAnimation(dt);
-    return MoveRight(dt);
+    return MoveDirection(dt, mCamera->GetRightDirection());
 }
 
 void Player::HandleAnimation(float dt)
@@ -124,14 +134,20 @@ void Player::ResetTransform()
     mLeftLeg->Identity();
 }
 
-bool Player::MoveForward(float dt)
+bool __vectorcall Player::MoveDirection(float dt, DirectX::XMVECTOR actualDirection)
 {
-    auto actualDirection = mCamera->GetDirection();
     actualDirection = XMVectorSetY(actualDirection, 0.0f);
     actualDirection = XMVector3Normalize(actualDirection);
     
+    DirectX::XMVECTOR newPosition;
+    newPosition = mPosition + actualDirection * distanceToWallInFrames * dt * mMoveSpeed;
+    if (PositionCollidesWithMaze(newPosition))
+    {
+        return false;
+    }
+
     mPosition = mPosition + actualDirection * dt * mMoveSpeed;
-    
+
     mYAngle = GetYAngle(actualDirection);
 
     if (auto thirdPersonCamera = dynamic_cast<ThirdPersonCamera*>(mCamera); thirdPersonCamera)
@@ -172,20 +188,12 @@ float Player::GetYAngle(const DirectX::XMVECTOR& actualDirection)
     return finalAngle;
 }
 
-bool Player::MoveRight(float dt)
+bool __vectorcall Player::PositionCollidesWithMaze(const DirectX::XMVECTOR& position)
 {
-    auto actualDirection = mCamera->GetRightDirection();
-    actualDirection = XMVectorSetY(actualDirection, 0.0f);
-    actualDirection = XMVector3Normalize(actualDirection);
-
-    mPosition = mPosition + actualDirection * dt * mMoveSpeed;
-
-    mYAngle = GetYAngle(actualDirection);
-
-    if (auto thirdPersonCamera = dynamic_cast<ThirdPersonCamera*>(mCamera); thirdPersonCamera)
-    {
-        thirdPersonCamera->SetTarget(mPosition);
-    }
-
-    return true;
+    mModel.Identity();
+    mModel.RotateY(mYAngle);
+    mModel.Translate(XMVectorGetX(position), XMVectorGetY(position), XMVectorGetZ(position));
+    bool result = mMaze->BoundingBoxCollidesWithWalls(mModel.GetTransformedBoundingBox());
+    mModel.Identity();
+    return result;
 }

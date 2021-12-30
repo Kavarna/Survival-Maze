@@ -59,6 +59,7 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     ResetModelsInstances();
 
     mMaze.Render();
+    mMaze.RenderDebug(frameResources->VertexBatchRenderer);
     mPlayer.Render();
     mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
 
@@ -134,9 +135,8 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
 
     // mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
     mCamera.Create((float)mClientWidth / mClientHeight);
-    CHECK(mPlayer.Create(mCubeModel), false, "Unable to create player model");
+    CHECK(mPlayer.Create(mCubeModel, &mMaze), false, "Unable to create player model");
     mPlayer.SetCamera(&mCamera);
-    mPlayer.mPosition = DirectX::XMVectorSetY(mPlayer.mPosition, 1.5f);
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
@@ -147,6 +147,11 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     auto startPositionResult = mMaze.Create(mazeInfo);
     CHECK(startPositionResult.Valid(), false, "Unable to create maze");
 
+    // mPlayer.mPosition = DirectX::XMVectorSetY(mPlayer.mPosition);
+    auto& startPosition = startPositionResult.Get();
+    startPosition.y = mPlayer.mModel.GetHalfHeight();
+    mPlayer.mPosition = DirectX::XMLoadFloat3(&startPosition);
+    mCamera.SetTarget(mPlayer.mPosition);
 
     CHECK_HR(initializationCmdList->Close(), false);
     d3d->Flush(initializationCmdList, mFence.Get(), ++mCurrentFrame);

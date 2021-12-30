@@ -24,6 +24,9 @@ public:
 public:
     void UpdateBoundingBox(const DirectX::XMMATRIX& compositeTransform = DirectX::XMMatrixIdentity());
     const DirectX::BoundingBox& GetBoundingBox() const;
+    [[deprecated("Should not use this function. Modyfing BoundingBoxes can give undefined results")]]
+    DirectX::BoundingBox& GetBoundingBox();
+    DirectX::BoundingBox GetTransformedBoundingBox() const;
 
 public:
     void Identity();
@@ -33,6 +36,8 @@ public:
     void RotateZ(float theta);
     void Scale(float scaleFactor);
     void Scale(float scaleFactorX, float scaleFactorY, float scaleFactorZ);
+
+    float GetHalfHeight() const;
 
 public:
     void IdentityFromParent();

@@ -19,9 +19,13 @@ public:
     Maze() = default;
 
 public:
-    Result<DirectX::XMINT2> Create(const MazeInitializationInfo& info);
-
+    Result<DirectX::XMFLOAT3> Create(const MazeInitializationInfo& info);
     void Render();
+    void RenderDebug(BatchRenderer& batchRenderer);
+
+    DirectX::XMFLOAT3 GetPositionFromCoordinates(const DirectX::XMINT2& coordinates) const;
+
+    bool BoundingBoxCollidesWithWalls(const DirectX::BoundingBox& boundingBox) const;
 
 private:
     Result<DirectX::XMINT2> Lee();
@@ -49,8 +53,12 @@ private:
     DirectX::XMFLOAT2 mStartPosition;
 
     Model* mCubeModel = nullptr;
+
+    float mTileWidth, mTileDepth;
     
 
     std::vector<uint32_t> mTileInstances;
+    std::vector<uint32_t> mWallInstances;
+
     std::vector<std::vector<TileType>> mTiles;
 };

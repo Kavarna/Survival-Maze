@@ -45,8 +45,7 @@ void CompositeModel::Render(const DirectX::XMMATRIX& compositeTransform)
 
 void CompositeModel::RenderDebug(BatchRenderer& renderer)
 {
-    DirectX::BoundingBox worldBoundingBox;
-    mBoundingBox.Transform(worldBoundingBox, mTransform);
+    DirectX::BoundingBox worldBoundingBox = GetTransformedBoundingBox();
     renderer.BoundingBox(worldBoundingBox, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
 }
 
@@ -66,6 +65,18 @@ void CompositeModel::UpdateBoundingBox(const DirectX::XMMATRIX& compositeTransfo
 const DirectX::BoundingBox& CompositeModel::GetBoundingBox() const
 {
     return mBoundingBox;
+}
+
+DirectX::BoundingBox& CompositeModel::GetBoundingBox()
+{
+    return mBoundingBox;
+}
+
+DirectX::BoundingBox CompositeModel::GetTransformedBoundingBox() const
+{
+    DirectX::BoundingBox worldBoundingBox;
+    mBoundingBox.Transform(worldBoundingBox, mTransform);
+    return worldBoundingBox;
 }
 
 void CompositeModel::Identity()
@@ -101,6 +112,11 @@ void CompositeModel::Scale(float scaleFactor)
 void CompositeModel::Scale(float x, float y, float z)
 {
     mTransform *= DirectX::XMMatrixScaling(x, y, z);
+}
+
+float CompositeModel::GetHalfHeight() const
+{
+    return mBoundingBox.Extents.y;
 }
 
 void CompositeModel::IdentityFromParent()

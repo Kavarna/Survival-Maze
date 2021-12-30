@@ -1,10 +1,14 @@
 #include "Maze.h"
 
-Result<DirectX::XMINT2> Maze::Create(const MazeInitializationInfo& info)
+Result<DirectX::XMFLOAT3> Maze::Create(const MazeInitializationInfo& info)
 {
     CHECK(info.rows >= 3 && info.cols >= 3, std::nullopt,
         "Can't create a maze with {} rows and {} cols. There should be at least 3 rows and at least 3 columns", info.rows, info.cols);
     CHECK(info.cubeModel != nullptr, std::nullopt, "A valid cube model is expected");
+    CHECK(info.tileWidth >= 1.0f && info.tileDepth >= 1, std::nullopt,
+        "Can't create a maze with tile sizes = ({}, {}). Both coordinates should be greater than 1", info.tileWidth, info.tileDepth);
+    mTileWidth = info.tileWidth;
+    mTileDepth = info.tileDepth;
     mTiles.resize(info.rows);
     for (auto& row : mTiles) {
         row.resize(info.cols, TileType::Wall);
@@ -19,7 +23,9 @@ Result<DirectX::XMINT2> Maze::Create(const MazeInitializationInfo& info)
     mCubeModel = info.cubeModel;
     AddModelInstances((uint32_t)info.tileWidth, (uint32_t)info.tileDepth);
 
-    return result;
+    auto& coordinates = result.Get();
+
+    return GetPositionFromCoordinates(coordinates);
 }
 
 void Maze::Render()
@@ -28,6 +34,47 @@ void Maze::Render()
     {
         mCubeModel->AddCurrentInstance(instance);
     }
+}
+
+void Maze::RenderDebug(BatchRenderer& batchRenderer)
+{
+    const auto& boundingBox = mCubeModel->GetBoundingBox();
+    for (const auto instance : mTileInstances)
+    {
+        const auto& instanceInfo = mCubeModel->GetInstanceInfo(instance);
+
+        DirectX::BoundingBox box;
+        boundingBox.Transform(box, instanceInfo.WorldMatrix);
+        batchRenderer.BoundingBox(box, DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f));
+    }
+}
+
+DirectX::XMFLOAT3 Maze::GetPositionFromCoordinates(const DirectX::XMINT2& coordinates) const
+{
+    DirectX::XMFLOAT3 finalPosition;
+    finalPosition.x = ((float)coordinates.x - (float)mTiles[0].size() / 2.0f) * mTileWidth;
+    finalPosition.z = ((float)coordinates.y - (float)mTiles.size() / 2.0f) * mTileDepth;
+    finalPosition.y = 0.0f;
+    return finalPosition;
+}
+
+bool Maze::BoundingBoxCollidesWithWalls(const DirectX::BoundingBox& boundingBox) const
+{
+    bool result = false;
+    for (const auto wallInstanceID : mWallInstances)
+    {
+        auto& wallInstance = mCubeModel->GetInstanceInfo(wallInstanceID);
+        auto& wallBoundingBox = mCubeModel->GetBoundingBox();
+        DirectX::BoundingBox currentBoundingBox;
+        wallBoundingBox.Transform(currentBoundingBox, wallInstance.WorldMatrix);
+
+        if (boundingBox.Intersects(currentBoundingBox))
+        {
+            result = true;
+            break;
+        }
+    }
+    return result;
 }
 
 Result<DirectX::XMINT2> Maze::Lee()
@@ -83,6 +130,7 @@ Result<DirectX::XMINT2> Maze::Lee()
             visitedTiles.insert({ nextNeighbour.y, nextNeighbour.x });
         }
     }
+    mTiles[startPosition.y][startPosition.x] = TileType::Free;
 
     SHOWINFO("Done generating maze");
 
@@ -92,6 +140,7 @@ Result<DirectX::XMINT2> Maze::Lee()
 void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
 {
     mTileInstances.reserve(mTiles.size() * mTiles[0].size());
+
     for (std::size_t i = 0; i < mTiles.size(); ++i) {
         for (std::size_t j = 0; j < mTiles[0].size(); ++j) {
             DirectX::XMFLOAT3 position;
@@ -100,7 +149,7 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
             DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
             position.x = ((float)j - (float)mTiles[0].size() / 2.0f) * tileWidth;
             position.z = ((float)i - (float)mTiles.size() / 2.0f) * tileDepth;
-            
+
             switch (mTiles[i][j]) {
             case TileType::Enemy:
                 color.z = 1.0f;
@@ -123,7 +172,12 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
             instanceInfo.Color = color;
             auto instanceResult = mCubeModel->AddInstance(instanceInfo);
             CHECKCONT(instanceResult.Valid(), "Cannot add tile instance");
-            mTileInstances.push_back(instanceResult.Get());
+            auto instanceID = instanceResult.Get();
+            mTileInstances.push_back(instanceID);
+            if (mTiles[i][j] == TileType::Wall)
+            {
+                mWallInstances.push_back(instanceID);
+            }
 
         }
     }
@@ -151,7 +205,7 @@ void Maze::PrintMazeToLogger()
         }
         mazeString << "\n";
     }
-    SHOWINFO("Generated maze is {}", mazeString.str());
+    SHOWINFO("Generated maze with {} rows and {} cols is {}", mTiles.size(), mTiles[0].size(), mazeString.str());
 }
 
 std::vector<DirectX::XMINT2> Maze::GetNeighbours(const DirectX::XMINT2& tile, std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>& visitedTiles)
