@@ -32,7 +32,7 @@ private:
     void ResetTransform();
     bool __vectorcall MoveDirection(float dt, DirectX::XMVECTOR actualDirection);
     float GetYAngle(const DirectX::XMVECTOR& actualDirection);
-    bool __vectorcall PositionCollidesWithMaze(const DirectX::XMVECTOR& position);
+    bool __vectorcall PositionCollidesWithMaze(const DirectX::XMVECTOR& position, float angle);
 
 public:
     ICamera* mCamera;
