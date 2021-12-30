@@ -42,8 +42,9 @@ private:
     void UpdateCameraTarget(const DirectX::XMVECTOR& position);
 
 private:
-    std::vector<Model> mModels;
-    Model* mCubeModel;
+    std::vector<Model*> mModels;
+    Model mCubeModel;
+    Model mSphereModel;
 
     Player mPlayer;
 

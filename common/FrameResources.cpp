@@ -63,7 +63,7 @@ bool FrameResources::Init(uint32_t numObjects, uint32_t numPasses, uint32_t numM
     for (const auto &it : instancesCountPerObject)
     {
         CHECK(InstanceBuffer[std::get<0>(it)].Init(it.second), false,
-              "Unable to create instance buffer ({} instances) for object {}", std::get<1>(it), std::get<0>(it));
+            "Unable to create instance buffer ({} instances) for object {}", std::get<1>(it), std::get<0>(it));
     }
 
     SHOWINFO("Successfully created a frame resource");

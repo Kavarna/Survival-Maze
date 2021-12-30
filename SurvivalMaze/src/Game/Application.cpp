@@ -103,7 +103,7 @@ std::unordered_map<uuids::uuid, uint32_t> Application::GetInstanceCount()
     std::unordered_map<uuids::uuid, uint32_t> result;
     for (const auto& model : mModels)
     {
-        result[model.GetUUID()] = model.GetInstanceCount();
+        result[model->GetUUID()] = model->GetInstanceCount();
     }
     return result;
 }
@@ -127,16 +127,21 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     CHECK_HR(cmdAllocator->Reset(), false);
     CHECK_HR(initializationCmdList->Reset(cmdAllocator, nullptr), false);
 
-    mModels.emplace_back(Direct3D::kBufferCount, 0);
-    CHECK(mModels.back().Create("Resources\\Cube.obj"), false, "Unable to load Suzanne");
-    mCubeModel = &mModels.back();
+    CHECK(mCubeModel.Create(Direct3D::kBufferCount, 0, "Resources\\Cube.obj"), false, "Unable to load cube");
+    mCubeModel.ClearInstances();
+    mModels.push_back(&mCubeModel);
+
+
+    CHECK(mSphereModel.Create(Direct3D::kBufferCount, 1, "Resources\\Sphere.obj"), false, "Unable to load cube");
+    mSphereModel.ClearInstances();
+    mModels.push_back(&mSphereModel);
 
     ComPtr<ID3D12Resource> intermediaryResources[2];
     CHECK(Model::InitBuffers(initializationCmdList, intermediaryResources), false, "Unable to initialize buffers for models");
 
     mFirstPersonCamera.Create({ 0.0f, 0.0f, 0.0f }, (float)mClientWidth / mClientHeight);
     mThirdPersonCamera.Create((float)mClientWidth / mClientHeight);
-    CHECK(mPlayer.Create(mCubeModel, &mMaze), false, "Unable to create player model");
+    CHECK(mPlayer.Create(&mCubeModel, &mMaze), false, "Unable to create player model");
     mPlayer.SetCamera(&mThirdPersonCamera);
     mActiveCamera = &mThirdPersonCamera;
 
@@ -145,7 +150,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     mazeInfo.cols = Random::get(10, 20);
     mazeInfo.tileWidth = 5.0f;
     mazeInfo.tileDepth = 5.0f;
-    mazeInfo.cubeModel = mCubeModel;
+    mazeInfo.cubeModel = &mCubeModel;
     auto startPositionResult = mMaze.Create(mazeInfo);
     CHECK(startPositionResult.Valid(), false, "Unable to create maze");
 
@@ -275,7 +280,6 @@ void Application::UpdateCamera(FrameResources* frameResources)
         mappedMemory->View = DirectX::XMMatrixTranspose(mActiveCamera->GetView());
         mappedMemory->Projection = DirectX::XMMatrixTranspose(mActiveCamera->GetProjection());
 
-        // mappedMemory->CameraPosition = mActiveCamera->GetPosition();
         DirectX::XMStoreFloat3(&mappedMemory->CameraPosition, mActiveCamera->GetPosition());
 
         mActiveCamera->DirtyFrames--;
@@ -298,12 +302,16 @@ void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResource
     for (unsigned int i = 0; i < mModels.size(); ++i)
     {
         auto materialBufferAddress = frameResources->MaterialsBuffers.GetGPUVirtualAddress();
-        const auto* objectMaterial = mModels[i].GetMaterial();
+        const auto* objectMaterial = mModels[i]->GetMaterial();
         materialBufferAddress += (uint64_t)objectMaterial->ConstantBufferIndex * frameResources->MaterialsBuffers.GetElementSize();
         cmdList->SetGraphicsRootConstantBufferView(1, materialBufferAddress);
 
-        auto& uuid = mModels[i].GetUUID();
-        auto instanceCount = mModels[i].PrepareInstances(frameResources->InstanceBuffer);
+        auto& uuid = mModels[i]->GetUUID();
+        auto instanceCount = mModels[i]->PrepareInstances(frameResources->InstanceBuffer);
+        if (instanceCount == 0)
+        {
+            continue;
+        }
         
         cmdList->SetGraphicsRootShaderResourceView(3, frameResources->InstanceBuffer[uuid].GetGPUVirtualAddress());
 
@@ -313,10 +321,10 @@ void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResource
             cmdList->SetGraphicsRootDescriptorTable(
                 4, textureSRVResult.Get());
         }
-        cmdList->DrawIndexedInstanced(mModels[i].GetIndexCount(),
+        cmdList->DrawIndexedInstanced(mModels[i]->GetIndexCount(),
             instanceCount, // Number of instances
-            mModels[i].GetStartIndexLocation(),
-            mModels[i].GetBaseVertexLocation(),
+            mModels[i]->GetStartIndexLocation(),
+            mModels[i]->GetBaseVertexLocation(),
             0); // Start InstanceLocation
     }
 }
@@ -325,7 +333,7 @@ void Application::ResetModelsInstances()
 {
     for (auto& model : mModels)
     {
-        model.ResetCurrentInstances();
+        model->ResetCurrentInstances();
     }
 }
 
