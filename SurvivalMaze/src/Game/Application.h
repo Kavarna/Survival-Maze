@@ -39,6 +39,8 @@ private:
 
     void ResetModelsInstances();
 
+    void UpdateCameraTarget(const DirectX::XMVECTOR& position);
+
 private:
     std::vector<Model> mModels;
     Model* mCubeModel;
@@ -52,8 +54,9 @@ private:
     D3D12_VIEWPORT mViewport;
     D3D12_RECT mScissors;
 
-    // Camera mCamera;
-    ThirdPersonCamera mCamera;
+    ThirdPersonCamera mThirdPersonCamera;
+    Camera mFirstPersonCamera;
+    ICamera* mActiveCamera;
     
 
     bool mMenuActive = true;

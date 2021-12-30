@@ -91,9 +91,10 @@ bool Application::OnResize()
     mScissors.right = mClientWidth;
     mScissors.bottom = mClientWidth;
 
-
-    // mCamera.Create(mCamera.GetPosition() (float)mClientWidth / mClientHeight);
-    mCamera.Create((float)mClientWidth / mClientHeight);
+    DirectX::XMFLOAT3 camPos;
+    DirectX::XMStoreFloat3(&camPos, mFirstPersonCamera.GetPosition());
+    mFirstPersonCamera.Create(camPos, (float)mClientWidth / mClientHeight);
+    mThirdPersonCamera.Create((float)mClientWidth / mClientHeight);
     return true;
 }
 
@@ -133,10 +134,11 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     ComPtr<ID3D12Resource> intermediaryResources[2];
     CHECK(Model::InitBuffers(initializationCmdList, intermediaryResources), false, "Unable to initialize buffers for models");
 
-    // mCamera.Create({ 0.0f, 2.0f, -3.0f }, (float)mClientWidth / mClientHeight);
-    mCamera.Create((float)mClientWidth / mClientHeight);
+    mFirstPersonCamera.Create({ 0.0f, 0.0f, 0.0f }, (float)mClientWidth / mClientHeight);
+    mThirdPersonCamera.Create((float)mClientWidth / mClientHeight);
     CHECK(mPlayer.Create(mCubeModel, &mMaze), false, "Unable to create player model");
-    mPlayer.SetCamera(&mCamera);
+    mPlayer.SetCamera(&mThirdPersonCamera);
+    mActiveCamera = &mThirdPersonCamera;
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
@@ -151,7 +153,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     auto& startPosition = startPositionResult.Get();
     startPosition.y = mPlayer.mModel.GetHalfHeight();
     mPlayer.mPosition = DirectX::XMLoadFloat3(&startPosition);
-    mCamera.SetTarget(mPlayer.mPosition);
+    mThirdPersonCamera.SetTarget(mPlayer.mPosition);
 
     CHECK_HR(initializationCmdList->Close(), false);
     d3d->Flush(initializationCmdList, mFence.Get(), ++mCurrentFrame);
@@ -162,6 +164,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
 void Application::ReactToKeyPresses(float dt)
 {
     static int lastScrollWheelValue = 0;
+    static bool cameraChangePressed = false;
     auto kb = mKeyboard->GetState();
     auto mouse = mMouse->GetState();
     bool mPlayerMoved = false;
@@ -175,6 +178,7 @@ void Application::ReactToKeyPresses(float dt)
     {
         if (mPlayer.Walk(dt))
         {
+            UpdateCameraTarget(mPlayer.mPosition);
             mPlayerMoved = true;
         }
     }
@@ -182,6 +186,7 @@ void Application::ReactToKeyPresses(float dt)
     {
         if (mPlayer.Walk(-dt))
         {
+            UpdateCameraTarget(mPlayer.mPosition);
             mPlayerMoved = true;
         }
     }
@@ -189,6 +194,7 @@ void Application::ReactToKeyPresses(float dt)
     {
         if (mPlayer.Strafe(dt))
         {
+            UpdateCameraTarget(mPlayer.mPosition);
             mPlayerMoved = true;
         }
     }
@@ -196,6 +202,7 @@ void Application::ReactToKeyPresses(float dt)
     {
         if (mPlayer.Strafe(-dt))
         {
+            UpdateCameraTarget(mPlayer.mPosition);
             mPlayerMoved = true;
         }
     }
@@ -208,13 +215,34 @@ void Application::ReactToKeyPresses(float dt)
     {
         mouse.x = Math::clamp(mouse.x, -25, 25);
         mouse.y = Math::clamp(mouse.y, -25, 25);
-        mCamera.Update(dt, (float)mouse.x, (float)mouse.y);
+        
+        mThirdPersonCamera.Update(dt, (float)mouse.x, (float)mouse.y);
+        mFirstPersonCamera.Update(dt, (float)mouse.x, (float)mouse.y);
+
         int scrollValue = mouse.scrollWheelValue - lastScrollWheelValue;
-        mCamera.AdjustZoom((float)scrollValue * 0.01f);
+        mThirdPersonCamera.AdjustZoom((float)scrollValue * 0.01f);
     }
     else
     {
-        mCamera.Update(dt, 0.0f, 0.0f);
+        mThirdPersonCamera.Update(dt, 0.0f, 0.0f);
+        mFirstPersonCamera.Update(dt, 0.0f, 0.0f);
+    }
+
+    if (kb.LeftControl && !cameraChangePressed)
+    {
+        if (mActiveCamera == &mThirdPersonCamera)
+        {
+            mActiveCamera = &mFirstPersonCamera;
+        }
+        else
+        {
+            mActiveCamera = &mThirdPersonCamera;
+        }
+        cameraChangePressed = true;
+    }
+    else if (!kb.LeftControl)
+    {
+        cameraChangePressed = false;
     }
 
     static bool bRightClick = false;
@@ -241,15 +269,16 @@ void Application::ReactToKeyPresses(float dt)
 
 void Application::UpdateCamera(FrameResources* frameResources)
 {
-    if (mCamera.DirtyFrames > 0)
+    if (mActiveCamera->DirtyFrames > 0)
     {
         auto mappedMemory = frameResources->PerPassBuffers.GetMappedMemory();
-        mappedMemory->View = DirectX::XMMatrixTranspose(mCamera.GetView());
-        mappedMemory->Projection = DirectX::XMMatrixTranspose(mCamera.GetProjection());
+        mappedMemory->View = DirectX::XMMatrixTranspose(mActiveCamera->GetView());
+        mappedMemory->Projection = DirectX::XMMatrixTranspose(mActiveCamera->GetProjection());
 
-        mappedMemory->CameraPosition = mCamera.GetPosition();
+        // mappedMemory->CameraPosition = mActiveCamera->GetPosition();
+        DirectX::XMStoreFloat3(&mappedMemory->CameraPosition, mActiveCamera->GetPosition());
 
-        mCamera.DirtyFrames--;
+        mActiveCamera->DirtyFrames--;
     }
 }
 
@@ -298,4 +327,10 @@ void Application::ResetModelsInstances()
     {
         model.ResetCurrentInstances();
     }
+}
+
+void Application::UpdateCameraTarget(const DirectX::XMVECTOR& position)
+{
+    mFirstPersonCamera.SetPosition(position);
+    mThirdPersonCamera.SetTarget(position);
 }

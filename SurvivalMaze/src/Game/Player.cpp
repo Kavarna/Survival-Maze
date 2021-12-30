@@ -151,11 +151,6 @@ bool __vectorcall Player::MoveDirection(float dt, DirectX::XMVECTOR actualDirect
 
     mYAngle = newAngle;
 
-    if (auto thirdPersonCamera = dynamic_cast<ThirdPersonCamera*>(mCamera); thirdPersonCamera)
-    {
-        thirdPersonCamera->SetTarget(mPosition);
-    }
-
     return true;
 }
 
