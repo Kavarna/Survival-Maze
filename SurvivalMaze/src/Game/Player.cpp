@@ -49,12 +49,6 @@ bool Player::Create(Model* usedModel, Maze* maze)
 
     mModel.UpdateBoundingBox();
 
-    //auto& boundingBox = mModel.GetBoundingBox();
-    //// Increse the bounding box size to prevent situation in which you can get stuck in walls when changing direction
-    //boundingBox.Extents.x *= 1.5f;
-    //boundingBox.Extents.y *= 1.5f;
-    //boundingBox.Extents.z *= 1.5f;
-
     return true;
 }
 

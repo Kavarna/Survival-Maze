@@ -27,6 +27,7 @@ bool Application::OnUpdate(FrameResources* frameResources, float dt)
     UpdateCamera(frameResources);
     UpdateModels(frameResources);
     mSceneLight.UpdateLightsBuffer(frameResources->LightsBuffer);
+    mProjectileManager.Update(dt);
     return true;
 }
 
@@ -62,6 +63,7 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     mMaze.RenderDebug(frameResources->VertexBatchRenderer);
     mPlayer.Render();
     mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
+    mProjectileManager.Render();
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
@@ -145,6 +147,8 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     mPlayer.SetCamera(&mThirdPersonCamera);
     mActiveCamera = &mThirdPersonCamera;
 
+    CHECK(mProjectileManager.Create(&mSphereModel, MaximumProjectiles), false, "Unable to initialize projectile manager");
+
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
     mazeInfo.cols = Random::get(10, 20);
@@ -214,6 +218,20 @@ void Application::ReactToKeyPresses(float dt)
     if (!mPlayerMoved)
     {
         mPlayer.ResetAnimation();
+    }
+    
+    static bool spacePressed = false;
+    if (kb.Space && !spacePressed)
+    {
+        DirectX::XMVECTOR direction = mActiveCamera->GetDirection();
+        direction = DirectX::XMVectorSetY(direction, 0.0f);
+        direction = DirectX::XMVector3Normalize(direction);
+        mProjectileManager.SpawnProjectile(mPlayer.mPosition, direction);
+        spacePressed = true;
+    }
+    else if (!kb.Space)
+    {
+        spacePressed = false;
     }
 
     if (!mMenuActive)

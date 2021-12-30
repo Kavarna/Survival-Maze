@@ -5,11 +5,13 @@
 #include "Maze.h"
 #include "CompositeModel.h"
 #include "Player.h"
+#include "ProjectileManager.h"
 
 
 
 class Application : public Engine
 {
+    static constexpr const uint32_t MaximumProjectiles = 2;
 public:
     Application();
     ~Application() = default;
@@ -28,7 +30,6 @@ public:
 
 private:
     bool InitModels(ID3D12GraphicsCommandList* initializationCmdList, ID3D12CommandAllocator* cmdAllocator);
-    bool InitPlayerModel();
 
 private:
     void ReactToKeyPresses(float dt);
@@ -47,6 +48,7 @@ private:
     Model mSphereModel;
 
     Player mPlayer;
+    ProjectileManager mProjectileManager;
 
     SceneLight mSceneLight;
 
