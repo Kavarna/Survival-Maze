@@ -68,8 +68,10 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderModels(cmdList, frameResources);
 
-
+    frameResources->VertexBatchRenderer.SetPipeline<PipelineType::DebugPipeline>(cmdList);
     frameResources->VertexBatchRenderer.End(cmdList);
+
+    RenderHUD(cmdList, frameResources);
     return true;
 }
 
@@ -97,6 +99,7 @@ bool Application::OnResize()
     DirectX::XMStoreFloat3(&camPos, mFirstPersonCamera.GetPosition());
     mFirstPersonCamera.Create(camPos, (float)mClientWidth / mClientHeight);
     mThirdPersonCamera.Create((float)mClientWidth / mClientHeight);
+    mOrthograficCamera.Create({ 0.0f, 0.0f, 0.0f }, (float)mClientWidth, (float)mClientHeight);
     return true;
 }
 
@@ -113,6 +116,12 @@ std::unordered_map<uuids::uuid, uint32_t> Application::GetInstanceCount()
 uint32_t Application::GetModelCount()
 {
     return (uint32_t)mModels.size();
+}
+
+uint32_t Application::GetPassCount()
+{
+    // One for 3D pass, one for 2D pass
+    return 2;
 }
 
 ID3D12PipelineState* Application::GetBeginFramePipeline()
@@ -160,7 +169,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
 
     // mPlayer.mPosition = DirectX::XMVectorSetY(mPlayer.mPosition);
     auto& startPosition = startPositionResult.Get();
-    startPosition.y = mPlayer.mModel.GetHalfHeight();
+    startPosition.y = mPlayer.mModel.GetHalfHeight() + 0.25f; // animation looks better if we offset the model by 0.25f
     mPlayer.mPosition = DirectX::XMLoadFloat3(&startPosition);
     mThirdPersonCamera.SetTarget(mPlayer.mPosition);
 
@@ -183,55 +192,59 @@ void Application::ReactToKeyPresses(float dt)
         PostQuitMessage(0);
     }
 
-    if (kb.Up || kb.W)
+    if (mRemainingTime >= 0.0f || mPlayer.mHealth < 0.0f);
     {
-        if (mPlayer.Walk(dt))
+        if (kb.Up || kb.W)
         {
-            UpdateCameraTarget(mPlayer.mPosition);
-            mPlayerMoved = true;
+            if (mPlayer.Walk(dt))
+            {
+                UpdateCameraTarget(mPlayer.mPosition);
+                mPlayerMoved = true;
+            }
         }
-    }
-    if (!mPlayerMoved && (kb.Down || kb.S))
-    {
-        if (mPlayer.Walk(-dt))
+        if (!mPlayerMoved && (kb.Down || kb.S))
         {
-            UpdateCameraTarget(mPlayer.mPosition);
-            mPlayerMoved = true;
+            if (mPlayer.Walk(-dt))
+            {
+                UpdateCameraTarget(mPlayer.mPosition);
+                mPlayerMoved = true;
+            }
         }
-    }
-    if (!mPlayerMoved && (kb.Right || kb.D))
-    {
-        if (mPlayer.Strafe(dt))
+        if (!mPlayerMoved && (kb.Right || kb.D))
         {
-            UpdateCameraTarget(mPlayer.mPosition);
-            mPlayerMoved = true;
+            if (mPlayer.Strafe(dt))
+            {
+                UpdateCameraTarget(mPlayer.mPosition);
+                mPlayerMoved = true;
+            }
         }
-    }
-    if (!mPlayerMoved && (kb.Left || kb.A))
-    {
-        if (mPlayer.Strafe(-dt))
+        if (!mPlayerMoved && (kb.Left || kb.A))
         {
-            UpdateCameraTarget(mPlayer.mPosition);
-            mPlayerMoved = true;
+            if (mPlayer.Strafe(-dt))
+            {
+                UpdateCameraTarget(mPlayer.mPosition);
+                mPlayerMoved = true;
+            }
         }
-    }
-    if (!mPlayerMoved)
-    {
-        mPlayer.ResetAnimation();
-    }
-    
-    static bool spacePressed = false;
-    if (kb.Space && !spacePressed)
-    {
-        DirectX::XMVECTOR direction = mActiveCamera->GetDirection();
-        direction = DirectX::XMVectorSetY(direction, 0.0f);
-        direction = DirectX::XMVector3Normalize(direction);
-        mProjectileManager.SpawnProjectile(mPlayer.mPosition, direction);
-        spacePressed = true;
-    }
-    else if (!kb.Space)
-    {
-        spacePressed = false;
+        if (!mPlayerMoved)
+        {
+            mPlayer.ResetAnimation();
+        }
+
+        static bool spacePressed = false;
+        if (kb.Space && !spacePressed)
+        {
+            DirectX::XMVECTOR direction = mActiveCamera->GetDirection();
+            direction = DirectX::XMVectorSetY(direction, 0.0f);
+            direction = DirectX::XMVector3Normalize(direction);
+            mProjectileManager.SpawnProjectile(mPlayer.mPosition, direction);
+            spacePressed = true;
+        }
+        else if (!kb.Space)
+        {
+            spacePressed = false;
+        }
+        mRemainingTime -= dt;
     }
 
     if (!mMenuActive)
@@ -302,10 +315,27 @@ void Application::UpdateCamera(FrameResources* frameResources)
 
         mActiveCamera->DirtyFrames--;
     }
+    if (mOrthograficCamera.DirtyFrames > 0)
+    {
+        auto mappedMemory = frameResources->PerPassBuffers.GetMappedMemory(1);
+        mappedMemory->View = DirectX::XMMatrixTranspose(mOrthograficCamera.GetView());
+        mappedMemory->Projection = DirectX::XMMatrixTranspose(mOrthograficCamera.GetProjection());
+
+        DirectX::XMStoreFloat3(&mappedMemory->CameraPosition, mOrthograficCamera.GetPosition());
+
+
+        // Also update hud world matrix
+        auto hudMemory = frameResources->HUDBuffers.GetMappedMemory();
+        hudMemory->World = DirectX::XMMatrixIdentity();
+        hudMemory->TexWorld = DirectX::XMMatrixIdentity();
+
+        mOrthograficCamera.DirtyFrames--;
+    }
 }
 
 void Application::UpdateModels(FrameResources* frameResources)
 {
+
 }
 
 void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources)
@@ -345,6 +375,67 @@ void Application::RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResource
             mModels[i]->GetBaseVertexLocation(),
             0); // Start InstanceLocation
     }
+}
+
+void Application::RenderHUD(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources)
+{
+    auto& batchRenderer = frameResources->HUDBatchRenderer;
+    batchRenderer.Begin();
+
+    // batchRenderer.Rectangle({ -100.0f, -100.0f }, { 100.0f, 100.f }, { 1.0f, 1.0f, 0.0f, 1.0f });
+    float mHalfScreenWidth = mClientWidth / 2.0f;
+    float mHalfScreenHeight = mClientHeight / 2.0f;
+    
+    {
+        // Time bar
+        float barHeight = 30.f, barWidth = 300.0f;
+        float left = -mHalfScreenWidth + 10, right = -mHalfScreenWidth + 10 + barWidth;
+        float bottom = mHalfScreenHeight - 10 - barHeight;
+        float top = mHalfScreenHeight - 10;
+        batchRenderer.Rectangle({ left, bottom },
+            { right, top }, { 1.0f, 1.0f, 0.0f, 1.0f });
+
+        left += 5;
+        right -= 5;
+        bottom += 5;
+        top -= 5;
+
+        right = Math::LinearInterpolation(mRemainingTime / MaximumTime, left, right);
+
+        batchRenderer.Rectangle({ left, bottom },
+            { right, top }, { 0.5f, 0.0f, 0.5f, 1.0f });
+    }
+    {
+        // Health bar
+        float barHeight = 30.f, barWidth = 300.0f;
+        float left = mHalfScreenWidth - 10 - barWidth, right = mHalfScreenWidth - 10;
+        float bottom = mHalfScreenHeight - 10 - barHeight;
+        float top = mHalfScreenHeight - 10;
+        batchRenderer.Rectangle({ left, bottom },
+                { right, top }, { 1.0f, 1.0f, 0.0f, 1.0f });
+
+        left += 5;
+        right -= 5;
+        bottom += 5;
+        top -= 5;
+
+        right = Math::LinearInterpolation(mPlayer.mHealth, left, right);
+
+        batchRenderer.Rectangle({ left, bottom },
+            { right, top }, { 1.0f, 0.0f, 0.0f, 1.0f });
+    }
+
+    CHECKRET((batchRenderer.SetPipeline<PipelineType::SimpleColor, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST>(cmdList)),
+        false, "Unable to set SimpleColor pipeline to the HUD batch renderer");
+
+    auto perObjectBufferAddress = frameResources->HUDBuffers.GetGPUVirtualAddress();
+    cmdList->SetGraphicsRootConstantBufferView(0, perObjectBufferAddress);
+
+    auto perPassBufferAddress = frameResources->PerPassBuffers.GetGPUVirtualAddress();
+    perPassBufferAddress += frameResources->PerPassBuffers.GetElementSize();
+    cmdList->SetGraphicsRootConstantBufferView(1, perPassBufferAddress);
+
+    batchRenderer.End(cmdList);
 }
 
 void Application::ResetModelsInstances()

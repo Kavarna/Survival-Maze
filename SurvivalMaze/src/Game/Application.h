@@ -12,6 +12,7 @@
 class Application : public Engine
 {
     static constexpr const uint32_t MaximumProjectiles = 2;
+    static constexpr const float MaximumTime = 600.f;
 public:
     Application();
     ~Application() = default;
@@ -26,6 +27,7 @@ public:
     virtual std::unordered_map<uuids::uuid, uint32_t> GetInstanceCount() override;
 
     virtual uint32_t GetModelCount() override;
+    virtual uint32_t GetPassCount() override;
     virtual ID3D12PipelineState* GetBeginFramePipeline() override;
 
 private:
@@ -37,6 +39,7 @@ private:
     void UpdateModels(FrameResources* frameResources);
 
     void RenderModels(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources);
+    void RenderHUD(ID3D12GraphicsCommandList* cmdList, FrameResources* frameResources);
 
     void ResetModelsInstances();
 
@@ -54,12 +57,15 @@ private:
 
     Maze mMaze;
 
+    float mRemainingTime = MaximumTime;
+
     D3D12_VIEWPORT mViewport;
     D3D12_RECT mScissors;
 
     ThirdPersonCamera mThirdPersonCamera;
     Camera mFirstPersonCamera;
     ICamera* mActiveCamera;
+    OrthographicCamera mOrthograficCamera;
     
 
     bool mMenuActive = true;

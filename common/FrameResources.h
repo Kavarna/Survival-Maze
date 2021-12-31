@@ -77,7 +77,7 @@ struct FrameResources
 
     ComPtr<ID3D12CommandAllocator> CommandAllocator;
 
-    // UploadBuffer<PerObjectInfo> PerObjectBuffers;
+    UploadBuffer<PerObjectInfo> HUDBuffers;
     UploadBuffer<PerPassInfo> PerPassBuffers;
     UploadBuffer<MaterialConstants> MaterialsBuffers;
     UploadBuffer<LightsBuffer> LightsBuffer;
@@ -86,6 +86,8 @@ struct FrameResources
     std::unordered_map<uuids::uuid, UploadBuffer<InstanceInfo>> InstanceBuffer;
 
     BatchRenderer VertexBatchRenderer;
+    
+    BatchRenderer HUDBatchRenderer;
 
     uint32_t BlurRenderTargetIndex;
     uint32_t BlurDepthStencilIndex;

@@ -17,6 +17,7 @@ bool FrameResources::Init(uint32_t numObjects, uint32_t numPasses, uint32_t numM
     //    CHECK(PerObjectBuffers.Init(numObjects, true), false,
     //          "Unable to initialize per object buffer with {} elements", numObjects);
     //}
+    CHECK(HUDBuffers.Init(1, true), false, "Unable to initialize HUD buffers");
     if (numPasses > 0)
     {
         CHECK(PerPassBuffers.Init(numPasses, true), false,
@@ -31,7 +32,8 @@ bool FrameResources::Init(uint32_t numObjects, uint32_t numPasses, uint32_t numM
     CHECK(LightsBuffer.Init(1, true), false,
           "Unable to initialize lights buffer with {} elements", 1);
 
-    VertexBatchRenderer.Create();
+    CHECK(VertexBatchRenderer.Create(), false, "Failed to create vertex batch renderer");
+    CHECK(HUDBatchRenderer.Create(), false, "Failed to create HUD batch renderer");
 
     CD3DX12_RESOURCE_DESC backbufferDesc = CD3DX12_RESOURCE_DESC::Tex2D(
         Direct3D::kBackbufferFormat, width / kBlurScale, height / kBlurScale, 1, 0, 1, 0,

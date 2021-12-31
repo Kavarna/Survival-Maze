@@ -46,6 +46,8 @@ public:
     CompositeModel* mRightLeg;
     CompositeModel* mLeftLeg;
 
+    float mHealth = 1.0f;
+
     DirectX::XMVECTOR mPosition;
     float mYAngle = 0.0f;
 
