@@ -2,6 +2,7 @@
 
 #include "Oblivion.h"
 #include "Model.h"
+#include "Enemy.h"
 
 class Maze {
 public:
@@ -9,10 +10,10 @@ public:
         unsigned int rows = 10;
         unsigned int cols = 10;
 
-        float tileWidth = 10.f;
-        float tileDepth = 10.f;
+        float tileWidthDepth = 10.f;
 
         Model* cubeModel;
+        Model* enemyModel;
     };
 
 public:
@@ -20,6 +21,7 @@ public:
 
 public:
     Result<DirectX::XMFLOAT3> Create(const MazeInitializationInfo& info);
+    void Update(float dt);
     void Render();
     void RenderDebug(BatchRenderer& batchRenderer);
 
@@ -30,7 +32,7 @@ public:
 private:
     Result<DirectX::XMINT2> Lee();
 
-    void AddModelInstances(uint32_t tileWidth, uint32_t tileDepth);
+    void AddModelInstances(uint32_t tileWidth, uint32_t tileDepth, Model* enemyModel);
 
     void PrintMazeToLogger();
 
@@ -60,5 +62,6 @@ private:
     std::vector<uint32_t> mTileInstances;
     std::vector<uint32_t> mWallInstances;
 
+    std::vector<Enemy> mEnemies;
     std::vector<std::vector<TileType>> mTiles;
 };

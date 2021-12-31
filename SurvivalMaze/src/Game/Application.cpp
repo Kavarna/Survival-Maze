@@ -28,6 +28,7 @@ bool Application::OnUpdate(FrameResources* frameResources, float dt)
     UpdateModels(frameResources);
     mSceneLight.UpdateLightsBuffer(frameResources->LightsBuffer);
     mProjectileManager.Update(dt);
+    mMaze.Update(dt);
     return true;
 }
 
@@ -161,9 +162,9 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
     mazeInfo.cols = Random::get(10, 20);
-    mazeInfo.tileWidth = 5.0f;
-    mazeInfo.tileDepth = 5.0f;
+    mazeInfo.tileWidthDepth = 5.0f;
     mazeInfo.cubeModel = &mCubeModel;
+    mazeInfo.enemyModel = &mSphereModel;
     auto startPositionResult = mMaze.Create(mazeInfo);
     CHECK(startPositionResult.Valid(), false, "Unable to create maze");
 
@@ -192,7 +193,7 @@ void Application::ReactToKeyPresses(float dt)
         PostQuitMessage(0);
     }
 
-    if (mRemainingTime >= 0.0f || mPlayer.mHealth < 0.0f);
+    if (mRemainingTime >= 0.0f || mPlayer.mHealth < 0.0f)
     {
         if (kb.Up || kb.W)
         {

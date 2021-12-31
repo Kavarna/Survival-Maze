@@ -5,10 +5,11 @@ Result<DirectX::XMFLOAT3> Maze::Create(const MazeInitializationInfo& info)
     CHECK(info.rows >= 3 && info.cols >= 3, std::nullopt,
         "Can't create a maze with {} rows and {} cols. There should be at least 3 rows and at least 3 columns", info.rows, info.cols);
     CHECK(info.cubeModel != nullptr, std::nullopt, "A valid cube model is expected");
-    CHECK(info.tileWidth >= 1.0f && info.tileDepth >= 1, std::nullopt,
-        "Can't create a maze with tile sizes = ({}, {}). Both coordinates should be greater than 1", info.tileWidth, info.tileDepth);
-    mTileWidth = info.tileWidth;
-    mTileDepth = info.tileDepth;
+    CHECK(info.enemyModel != nullptr, std::nullopt, "A valid enemy model is expected");
+    CHECK(info.tileWidthDepth >= 1.0f, std::nullopt,
+        "Can't create a maze with tile size = ({}, {}). Both coordinates should be greater than 1", info.tileWidthDepth, info.tileWidthDepth);
+    mTileWidth = info.tileWidthDepth;
+    mTileDepth = info.tileWidthDepth;
     mTiles.resize(info.rows);
     for (auto& row : mTiles) {
         row.resize(info.cols, TileType::Wall);
@@ -21,11 +22,19 @@ Result<DirectX::XMFLOAT3> Maze::Create(const MazeInitializationInfo& info)
 #endif
 
     mCubeModel = info.cubeModel;
-    AddModelInstances((uint32_t)info.tileWidth, (uint32_t)info.tileDepth);
+    AddModelInstances((uint32_t)info.tileWidthDepth, (uint32_t)info.tileWidthDepth, info.enemyModel);
 
     auto& coordinates = result.Get();
 
     return GetPositionFromCoordinates(coordinates);
+}
+
+void Maze::Update(float dt)
+{
+    for (auto& enemy : mEnemies)
+    {
+        enemy.Update(dt);
+    }
 }
 
 void Maze::Render()
@@ -33,6 +42,10 @@ void Maze::Render()
     for (const auto instance : mTileInstances)
     {
         mCubeModel->AddCurrentInstance(instance);
+    }
+    for (auto& enemy : mEnemies)
+    {
+        enemy.Render();
     }
 }
 
@@ -137,14 +150,13 @@ Result<DirectX::XMINT2> Maze::Lee()
     return startPosition;
 }
 
-void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
+void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth, Model* enemyModel)
 {
     mTileInstances.reserve(mTiles.size() * mTiles[0].size());
 
     for (std::size_t i = 0; i < mTiles.size(); ++i) {
         for (std::size_t j = 0; j < mTiles[0].size(); ++j) {
             DirectX::XMFLOAT3 position;
-            // DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
             DirectX::XMFLOAT3 scale = { (float)tileWidth, 2.0f, (float)tileDepth };
             DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
             position.x = ((float)j - (float)mTiles[0].size() / 2.0f) * tileWidth;
@@ -153,6 +165,7 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
             switch (mTiles[i][j]) {
             case TileType::Enemy:
                 color.z = 1.0f;
+                __fallthrough;
             case TileType::Free:
                 position.y = -1.0f;
                 break;
@@ -177,6 +190,12 @@ void Maze::AddModelInstances(uint32_t tileWidth, uint32_t tileDepth)
             if (mTiles[i][j] == TileType::Wall)
             {
                 mWallInstances.push_back(instanceID);
+            }
+            else if (mTiles[i][j] == TileType::Enemy)
+            {
+                mEnemies.emplace_back();
+                DirectX::XMFLOAT3 position = GetPositionFromCoordinates({ (int32_t)j, (int32_t)i });
+                CHECKCONT(mEnemies.back().Create(enemyModel, position, mTileWidth), "Cannot create enemy on coordinates = ({}, {})", j, i);
             }
 
         }
