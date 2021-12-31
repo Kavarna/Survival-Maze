@@ -12,7 +12,7 @@
 class Application : public Engine
 {
     static constexpr const uint32_t MaximumProjectiles = 2;
-    static constexpr const float MaximumTime = 600.f;
+    static constexpr const float MaximumTime = 10.f;
 public:
     Application();
     ~Application() = default;

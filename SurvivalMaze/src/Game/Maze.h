@@ -28,6 +28,9 @@ public:
     DirectX::XMFLOAT3 GetPositionFromCoordinates(const DirectX::XMINT2& coordinates) const;
 
     bool BoundingBoxCollidesWithWalls(const DirectX::BoundingBox& boundingBox) const;
+    bool BoundingBoxCollidesWithEnemy(const DirectX::BoundingBox& boundingBox) const;
+
+    bool HandleCollisionBetweenBoundingBoxAndEnemies(const DirectX::BoundingBox& boundingBox);
 
 private:
     Result<DirectX::XMINT2> Lee();

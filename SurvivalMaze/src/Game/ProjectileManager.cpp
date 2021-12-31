@@ -1,11 +1,11 @@
 #include "ProjectileManager.h"
 
-bool ProjectileManager::Create(Model* projectileModel, uint32_t maxNumProjectiles)
+bool ProjectileManager::Create(Model* projectileModel, Maze* maze, uint32_t maxNumProjectiles)
 {
     mProjectiles.resize((size_t)maxNumProjectiles);
     for (auto& projectile : mProjectiles)
     {
-        projectile.Create(projectileModel);
+        projectile.Create(projectileModel, maze);
     };
     return true;
 }

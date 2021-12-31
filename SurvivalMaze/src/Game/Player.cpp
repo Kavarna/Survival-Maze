@@ -57,7 +57,10 @@ void Player::Render()
     mModel.Identity();
     mModel.RotateY(mYAngle);
     mModel.Translate(XMVectorGetX(mPosition), XMVectorGetY(mPosition), XMVectorGetZ(mPosition));
-    mModel.Render();
+    if (mHealth > 0.0f)
+    {
+        mModel.Render();
+    }
 }
 
 void Player::RenderDebug(BatchRenderer& renderer)
@@ -183,7 +186,12 @@ bool __vectorcall Player::PositionCollidesWithMaze(const DirectX::XMVECTOR& posi
     mModel.Identity();
     mModel.RotateY(angle);
     mModel.Translate(XMVectorGetX(position), XMVectorGetY(position), XMVectorGetZ(position));
-    bool result = mMaze->BoundingBoxCollidesWithWalls(mModel.GetTransformedBoundingBox());
+    DirectX::BoundingBox transformedBoundingBox = mModel.GetTransformedBoundingBox();
+    bool result = mMaze->BoundingBoxCollidesWithWalls(transformedBoundingBox);
+    if (result |= mMaze->HandleCollisionBetweenBoundingBoxAndEnemies(transformedBoundingBox))
+    {
+        mHealth -= 1.0f / 3.f;
+    }
     mModel.Identity();
     return result;
 }

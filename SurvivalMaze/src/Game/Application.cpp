@@ -157,7 +157,7 @@ bool Application::InitModels(ID3D12GraphicsCommandList* initializationCmdList, I
     mPlayer.SetCamera(&mThirdPersonCamera);
     mActiveCamera = &mThirdPersonCamera;
 
-    CHECK(mProjectileManager.Create(&mSphereModel, MaximumProjectiles), false, "Unable to initialize projectile manager");
+    CHECK(mProjectileManager.Create(&mSphereModel, &mMaze, MaximumProjectiles), false, "Unable to initialize projectile manager");
 
     Maze::MazeInitializationInfo mazeInfo = {};
     mazeInfo.rows = Random::get(10, 20);
@@ -193,7 +193,7 @@ void Application::ReactToKeyPresses(float dt)
         PostQuitMessage(0);
     }
 
-    if (mRemainingTime >= 0.0f || mPlayer.mHealth < 0.0f)
+    if (mPlayer.mHealth > 0.0f)
     {
         if (kb.Up || kb.W)
         {
@@ -246,6 +246,10 @@ void Application::ReactToKeyPresses(float dt)
             spacePressed = false;
         }
         mRemainingTime -= dt;
+        if (mRemainingTime < 0.0f)
+        {
+            mPlayer.mHealth = 0.0f;
+        }
     }
 
     if (!mMenuActive)

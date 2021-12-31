@@ -90,6 +90,38 @@ bool Maze::BoundingBoxCollidesWithWalls(const DirectX::BoundingBox& boundingBox)
     return result;
 }
 
+bool Maze::BoundingBoxCollidesWithEnemy(const DirectX::BoundingBox& boundingBox) const
+{
+    bool result = false;
+
+    for (const auto& enemy : mEnemies)
+    {
+        if (enemy.CollisionWithBoundingBox(boundingBox))
+        {
+            result = true;
+            break;
+        }
+    }
+
+    return result;
+}
+
+bool Maze::HandleCollisionBetweenBoundingBoxAndEnemies(const DirectX::BoundingBox& boundingBox)
+{
+    uint32_t numCollisions = 0;
+    mEnemies.erase(std::remove_if(mEnemies.begin(), mEnemies.end(),
+        [&](const Enemy& enemy)
+        {
+            if (enemy.CollisionWithBoundingBox(boundingBox))
+            {
+                numCollisions++;
+                return true;
+            }
+            return false;
+        }), mEnemies.end());
+    return numCollisions > 0;
+}
+
 Result<DirectX::XMINT2> Maze::Lee()
 {
     DirectX::XMINT2 startPosition = {

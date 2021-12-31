@@ -2,10 +2,12 @@
 
 using namespace DirectX;
 
-bool Projectile::Create(Model* projectileModel)
+bool Projectile::Create(Model* projectileModel, Maze* maze)
 {
     CHECK(projectileModel, false, "Cannot create a projectile with no model to render");
+    CHECKSHOW(maze, "Creating a projectile without a maze");
     mProjectileModel = projectileModel;
+    mMaze = maze;
 
     InstanceInfo info;
     info.Color = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -32,6 +34,17 @@ void Projectile::Update(float dt)
         if (mLifetime < 0.0f)
         {
             mActive = false;
+        }
+
+        if (mMaze)
+        {
+            BoundingBox currentBoundingBox;
+            const auto& boundingBox = mProjectileModel->GetBoundingBox();
+            boundingBox.Transform(currentBoundingBox, worldMatrix);
+            if (mMaze->HandleCollisionBetweenBoundingBoxAndEnemies(currentBoundingBox))
+            {
+                SetActive(false);
+            }
         }
     }
 }

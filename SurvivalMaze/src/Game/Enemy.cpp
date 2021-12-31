@@ -54,3 +54,13 @@ void Enemy::Render()
 {
     mModel->AddCurrentInstance(mInstanceID);
 }
+
+bool Enemy::CollisionWithBoundingBox(const DirectX::BoundingBox& bb) const
+{
+    InstanceInfo& instanceInfo = mModel->GetInstanceInfo(mInstanceID);
+    const auto& boundingBox = mModel->GetBoundingBox();
+    BoundingBox currentBoundingBox;
+    boundingBox.Transform(currentBoundingBox, instanceInfo.WorldMatrix);
+
+    return currentBoundingBox.Intersects(bb);
+}

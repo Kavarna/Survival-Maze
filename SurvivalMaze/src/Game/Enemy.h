@@ -16,6 +16,8 @@ public:
     void Update(float dt);
     void Render();
 
+    bool CollisionWithBoundingBox(const DirectX::BoundingBox& bb) const;
+
 private:
     Model* mModel;
     float mRange;

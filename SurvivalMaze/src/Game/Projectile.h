@@ -2,12 +2,13 @@
 
 
 #include <Model.h>
+#include "Maze.h"
 
 
 class Projectile
 {
 public:
-    bool Create(Model* projectileModel);
+    bool Create(Model* projectileModel, Maze* maze);
     void Update(float dt);
     void Render();
 
@@ -23,6 +24,7 @@ private:
     static constexpr const float speed = 5.0f;
 
     Model* mProjectileModel;
+    Maze* mMaze;
 
     DirectX::XMVECTOR mPosition;
     DirectX::XMVECTOR mDirection;
