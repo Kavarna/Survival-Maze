@@ -188,9 +188,10 @@ bool __vectorcall Player::PositionCollidesWithMaze(const DirectX::XMVECTOR& posi
     mModel.Translate(XMVectorGetX(position), XMVectorGetY(position), XMVectorGetZ(position));
     DirectX::BoundingBox transformedBoundingBox = mModel.GetTransformedBoundingBox();
     bool result = mMaze->BoundingBoxCollidesWithWalls(transformedBoundingBox);
-    if (result |= mMaze->HandleCollisionBetweenBoundingBoxAndEnemies(transformedBoundingBox))
+    if (mMaze->HandleCollisionBetweenBoundingBoxAndEnemies(transformedBoundingBox))
     {
         mHealth -= 1.0f / 3.f;
+        result |= true;
     }
     mModel.Identity();
     return result;

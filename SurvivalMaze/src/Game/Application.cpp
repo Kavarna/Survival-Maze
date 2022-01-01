@@ -61,9 +61,9 @@ bool Application::OnRender(ID3D12GraphicsCommandList* cmdList, FrameResources* f
     ResetModelsInstances();
 
     mMaze.Render();
-    mMaze.RenderDebug(frameResources->VertexBatchRenderer);
+    // mMaze.RenderDebug(frameResources->VertexBatchRenderer);
     mPlayer.Render();
-    mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
+    // mPlayer.RenderDebug(frameResources->VertexBatchRenderer);
     mProjectileManager.Render();
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

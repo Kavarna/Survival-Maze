@@ -31,10 +31,12 @@ Result<DirectX::XMFLOAT3> Maze::Create(const MazeInitializationInfo& info)
 
 void Maze::Update(float dt)
 {
-    for (auto& enemy : mEnemies)
-    {
-        enemy.Update(dt);
-    }
+    mEnemies.erase(std::remove_if(mEnemies.begin(), mEnemies.end(),
+        [&](Enemy& enemy)
+        {
+            enemy.Update(dt);
+            return enemy.ShouldDie();
+        }), mEnemies.end());
 }
 
 void Maze::Render()
@@ -109,16 +111,14 @@ bool Maze::BoundingBoxCollidesWithEnemy(const DirectX::BoundingBox& boundingBox)
 bool Maze::HandleCollisionBetweenBoundingBoxAndEnemies(const DirectX::BoundingBox& boundingBox)
 {
     uint32_t numCollisions = 0;
-    mEnemies.erase(std::remove_if(mEnemies.begin(), mEnemies.end(),
-        [&](const Enemy& enemy)
+    for (auto& enemy : mEnemies)
+    {
+        if (enemy.CollisionWithBoundingBox(boundingBox))
         {
-            if (enemy.CollisionWithBoundingBox(boundingBox))
-            {
-                numCollisions++;
-                return true;
-            }
-            return false;
-        }), mEnemies.end());
+            numCollisions++;
+            enemy.Die();
+        }
+    }
     return numCollisions > 0;
 }
 

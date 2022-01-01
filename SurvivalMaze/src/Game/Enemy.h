@@ -15,6 +15,9 @@ public:
 
     void Update(float dt);
     void Render();
+    void Die();
+
+    bool ShouldDie() const;
 
     bool CollisionWithBoundingBox(const DirectX::BoundingBox& bb) const;
 
@@ -23,6 +26,8 @@ private:
     float mRange;
 
     float mAnimationTime;
+
+    bool mDying = false;
 
     DirectX::XMVECTOR mInitialPosition;
     DirectX::XMVECTOR mPosition;
